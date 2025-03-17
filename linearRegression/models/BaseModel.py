@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 import numpy as np
+import pandas as pd
 
 class BaseModel(ABC):
     
     def __init__(self):
         # These are common attributes among all regression models
-        self.coefficients = None # Storing model weights
-        self.intercept = None # Storing the intercept term
-        self.isFitted = False # Track if the model has been trained or not
+        self.coefficients = None  # Storing model weights
+        self.intercept = None  # Storing the intercept term
+        self.isFitted = False  # Track if the model has been trained or not
 
     @abstractmethod
     def fit(self, X, y):
@@ -21,9 +22,8 @@ class BaseModel(ABC):
 
         Returns:
         --------
-        self: retruns an instance of self
+        self: returns an instance of self
         """
-
         pass
 
     @abstractmethod
@@ -41,7 +41,6 @@ class BaseModel(ABC):
         """
         pass
 
-
     def score(self, X, y):
         """
         Calculate the coefficient of determination (R^2) for the model.
@@ -49,26 +48,56 @@ class BaseModel(ABC):
         Parameters:
         -----------
         X: Array of test data (N x M array of N samples and M features)
-        y: Array of actual values (N smaples)
+        y: Array of actual values (N samples)
 
         Returns:
         --------
         score: float, R^2 score
         """
-
-        predictions = self.predict(X)
-        loss = 0
-
-        for i in range(len(predictions)):
-            loss += ((y[i] - predictions[i]) ** 2)
+        # Convert inputs to consistent formats
+        is_pandas_y = isinstance(y, pd.DataFrame) or isinstance(y, pd.Series)
         
+        if is_pandas_y:
+            y = y.values
+        else:
+            y = np.array(y)
 
-        return loss
+        # Get predictions
+        predictions = self.predict(X)
+        
+        # Convert predictions to numpy if needed
+        if isinstance(predictions, pd.DataFrame) or isinstance(predictions, pd.Series):
+            predictions = predictions.values
+        else:
+            predictions = np.array(predictions)
+            
+        # Make sure both y and predictions are 1D arrays
+        y = y.flatten()
+        predictions = predictions.flatten()
 
+        # Calculate the mean of y
+        y_mean = np.mean(y)
+        
+        # Calculate the sum of squared residuals
+        ss_res = np.sum((y - predictions) ** 2)
+        
+        # Calculate the total sum of squares
+        ss_tot = np.sum((y - y_mean) ** 2)
+        
+        # Avoid division by zero
+        if ss_tot == 0:
+            return 0.0
+            
+        # Calculate R^2
+        r2 = 1 - (ss_res / ss_tot)
+        
+        # R² sometimes can be negative if the model is worse than predicting the mean
+        # In practice, it's usually capped at 0
+        return max(0.0, r2) if not np.isnan(r2) else 0.0
 
-    def validateData(self, X, y = None):
+    def validateData(self, X, y=None):
         """
-        Validate and conver input data to proper numpy arrays.
+        Validate and convert input data to proper numpy arrays.
         
         This function should:
         1. Convert X to a numpy array if it isn't already
@@ -88,24 +117,30 @@ class BaseModel(ABC):
         X: Numpy array of training data
         y: Numpy array of target values (if provided) 
         """
+        # Convert DataFrame or Series to numpy
+        if isinstance(X, pd.DataFrame) or isinstance(X, pd.Series):
+            X = X.values
+        else:
+            X = np.array(X)
 
-        X = np.array(X)
-
+        # Ensure X is 2D
         if len(X.shape) == 1:
             X = X.reshape(-1, 1)
 
         if y is not None:
-            y = np.array(y)
+            if isinstance(y, pd.DataFrame) or isinstance(y, pd.Series):
+                y = y.values
+            else:
+                y = np.array(y)
+                
+            # Ensure y is 1D
+            y = y.flatten()
 
-            if len(y.shape) == 1:
-                y = y.reshape(-1, 1)
-
-            if len(y.shape) != 1:
-                raise ValueError("y must be 1D")
-
+            # Check that X and y have the same number of samples
             if X.shape[0] != y.shape[0]:
-                raise ValueError("X and y must have the same number of samples")
+                raise ValueError(f"X and y must have the same number of samples, got {X.shape[0]} and {y.shape[0]}.")
 
+        # Check for missing or infinite values
         if np.isnan(X).any():
             raise ValueError("X contains missing values")
 
@@ -119,7 +154,7 @@ class BaseModel(ABC):
             if np.isinf(y).any():
                 raise ValueError("y contains infinite values")
 
-        return X, y
+        return X, y if y is not None else None
     
     def getParams(self):
         """

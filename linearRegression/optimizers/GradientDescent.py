@@ -2,7 +2,7 @@ import numpy as np
 
 class GradientDescent:
 
-    def __init__(self, learningRate=0.01, maxIterations=1000, tolerance=0.0001, verbose=False):
+    def __init__(self, learningRate=0.01, maxIterations=1000, tolerance=1e-6, verbose=False):
         """
         Initialize the gradient descent optimizer.
         
@@ -22,6 +22,7 @@ class GradientDescent:
         self.maxIterations = maxIterations
         self.tolerance = tolerance
         self.verbose = verbose
+        self.adaptive_lr = True  # Enable adaptive learning rate
 
     def getLearningRate(self):
         return self.learningRate
@@ -59,27 +60,95 @@ class GradientDescent:
         params: Array of optimized model parameters
         costHistory: Array of cost function history
         """
+        X = np.array(X)
+        y = np.array(y)
         costHistory = []
 
-        # Type checking
-        initialParams = np.array(initialParams)
-
+        # Type checking and initialization
         if initialParams is not None:
-            params = initialParams
+            params = np.array(initialParams, dtype=np.float64)
         else:
-            params = np.ones(X.shape[1])
+            params = np.zeros(X.shape[1], dtype=np.float64)
 
+        # Calculate initial cost
+        cost = self.computeCost(X, y, params)
+        costHistory.append(cost)
+        
+        if self.verbose:
+            print(f"Initial cost: {cost}")
+
+        # Current learning rate - may be adjusted
+        current_lr = self.learningRate
+        
+        # Keep track of consecutive increases in cost
+        cost_increases = 0
+        
+        # Gradient descent iterations
         for i in range(self.maxIterations):
             gradient = self.computeGradient(X, y, params)
-            newParams = params - self.learningRate * gradient
-
-            # Compute the cost function
-            cost = self.computeCost(X, y, newParams)
-            costHistory.append(cost)
-
-            # Check for convergence
-            if self.checkConvergence(costHistory[-1], cost):
-                break
+            
+            # Check for NaN or Inf in gradient
+            if np.any(np.isnan(gradient)) or np.any(np.isinf(gradient)):
+                if self.verbose:
+                    print(f"Warning: NaN or Inf detected in gradient at iteration {i}")
+                
+                # Reduce learning rate significantly and reset parameters
+                current_lr *= 0.1
+                if current_lr < 1e-10:
+                    if self.verbose:
+                        print("Learning rate too small, stopping optimization")
+                    break
+                
+                continue
+            
+            # Calculate new parameters
+            newParams = params - current_lr * gradient
+            
+            # Calculate new cost
+            try:
+                newCost = self.computeCost(X, y, newParams)
+                
+                # Adaptive learning rate
+                if self.adaptive_lr:
+                    if newCost > cost:
+                        # Cost increased, reduce learning rate
+                        current_lr *= 0.5
+                        cost_increases += 1
+                        
+                        if cost_increases > 5:
+                            if self.verbose:
+                                print(f"Too many cost increases, stopping at iteration {i}")
+                            break
+                            
+                        # Try again with smaller learning rate
+                        continue
+                    else:
+                        # Cost decreased, slightly increase learning rate
+                        current_lr *= 1.05
+                        cost_increases = 0
+                
+                # Check for convergence - relative improvement
+                if cost > 0 and abs((newCost - cost) / cost) < self.tolerance:
+                    if self.verbose:
+                        print(f"Converged after {i+1} iterations")
+                    break
+                
+                # Update parameters and cost
+                params = newParams
+                cost = newCost
+                costHistory.append(cost)
+                
+                if self.verbose and i % 100 == 0:
+                    print(f"Iteration {i}, cost: {cost}, learning rate: {current_lr}")
+                    
+            except (RuntimeWarning, OverflowError, FloatingPointError) as e:
+                if self.verbose:
+                    print(f"Numerical error at iteration {i}: {e}")
+                # Reduce learning rate
+                current_lr *= 0.1
+                if current_lr < 1e-10:
+                    break
+                continue
 
         return params, costHistory
     
@@ -99,22 +168,29 @@ class GradientDescent:
         --------
         gradient: Array of gradients
         """
-        X = np.array(X)
-        y = np.array(y)
+        try:
+            # Number of samples
+            m = X.shape[0]
 
-        # Number of samples
-        m = X.shape[0]
+            # Calculate predictions with current parameters
+            predictions = X @ params
 
-        # Calculate predictions with current parameters
-        predictions = X @ params
+            # Calculate errors
+            errors = predictions - y
 
-        errors = predictions - y
-
-        # Calculate the gradient using vectorized operations
-        # (1/m) * X.T * (X*params - y)
-        gradient = (1/m) * X.T @ errors
-
-        return gradient
+            # Calculate the gradient using vectorized operations
+            # (1/m) * X.T * (X*params - y)
+            gradient = (1/m) * X.T @ errors
+            
+            # Clip gradient to prevent explosion
+            gradient = np.clip(gradient, -1e10, 1e10)
+            
+            return gradient
+            
+        except Exception as e:
+            if self.verbose:
+                print(f"Error computing gradient: {e}")
+            return np.zeros_like(params)
 
     def computeCost(self, X, y, params):
         """
@@ -132,21 +208,29 @@ class GradientDescent:
         --------
         cost: float, the cost of the model
         """
-        X = np.array(X)
-        y = np.array(y)
+        try:
+            # Number of samples
+            m = X.shape[0]
 
-        # Number of samples
-        m = X.shape[0]
+            # Calculate predictions with current parameters
+            predictions = X @ params
 
-        # Calculate predictions with current parameters
-        predictions = X @ params
-
-        # Calculate the mean squared error
-        # (1/2m) * Σ(hθ(x) - y)^2
-        cost = (1/(2*m)) * np.sum((predictions - y)**2)
-
-        return cost
-
+            # Check for overflow in squared error calculation
+            errors = predictions - y
+            squared_errors = np.square(errors)
+            
+            if np.any(np.isinf(squared_errors)):
+                return float('inf')
+                
+            # Calculate the mean squared error
+            # (1/2m) * Σ(hθ(x) - y)^2
+            cost = (1/(2*m)) * np.sum(squared_errors)
+            
+            return cost
+            
+        except Exception as e:
+            print(f"Error computing cost: {e}")
+            return float('inf')
 
     def checkConvergence(self, oldCost, newCost):
         """
@@ -161,6 +245,6 @@ class GradientDescent:
         --------
         converged: bool, whether the optimizer has converged
         """
-
-        # Check if the difference in cost is less than the tolerance
-        return np.abs(oldCost - newCost) < self.tolerance
+        if oldCost == 0:
+            return abs(newCost) < self.tolerance
+        return abs((newCost - oldCost) / oldCost) < self.tolerance
