@@ -23,6 +23,27 @@ class GradientDescent:
         self.tolerance = tolerance
         self.verbose = verbose
 
+    def getLearningRate(self):
+        return self.learningRate
+    
+    def getMaxIterations(self):
+        return self.maxIterations
+    
+    def getTolerance(self):
+        return self.tolerance
+
+    def setLearningRate(self, learningRate):
+        self.learningRate = learningRate
+
+    def setMaxIterations(self, maxIterations):
+        self.maxIterations = maxIterations
+
+    def setTolerance(self, tolerance):
+        self.tolerance = tolerance
+
+    def setVerbose(self, verbose):
+        self.verbose = verbose
+
     def optimize(self, X, y, initialParams=None):
         """
         Optimize the model parameters using gradient descent.
