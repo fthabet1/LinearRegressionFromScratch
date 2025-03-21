@@ -22,7 +22,7 @@ class GradientDescent:
         self.maxIterations = maxIterations
         self.tolerance = tolerance
         self.verbose = verbose
-        self.adaptive_lr = True  # Enable adaptive learning rate
+        self.adaptive_lr = True
 
     def getLearningRate(self):
         return self.learningRate
@@ -78,10 +78,10 @@ class GradientDescent:
             print(f"Initial cost: {cost}")
 
         # Current learning rate - may be adjusted
-        current_lr = self.learningRate
+        currentLR = self.learningRate
         
         # Keep track of consecutive increases in cost
-        cost_increases = 0
+        costIncreases = 0
         
         # Gradient descent iterations
         for i in range(self.maxIterations):
@@ -93,8 +93,8 @@ class GradientDescent:
                     print(f"Warning: NaN or Inf detected in gradient at iteration {i}")
                 
                 # Reduce learning rate significantly and reset parameters
-                current_lr *= 0.1
-                if current_lr < 1e-10:
+                currentLR *= 0.1
+                if currentLR < 1e-10:
                     if self.verbose:
                         print("Learning rate too small, stopping optimization")
                     break
@@ -102,7 +102,7 @@ class GradientDescent:
                 continue
             
             # Calculate new parameters
-            newParams = params - current_lr * gradient
+            newParams = params - currentLR * gradient
             
             # Calculate new cost
             try:
@@ -112,10 +112,10 @@ class GradientDescent:
                 if self.adaptive_lr:
                     if newCost > cost:
                         # Cost increased, reduce learning rate
-                        current_lr *= 0.5
-                        cost_increases += 1
+                        currentLR *= 0.5
+                        costIncreases += 1
                         
-                        if cost_increases > 5:
+                        if costIncreases > 5:
                             if self.verbose:
                                 print(f"Too many cost increases, stopping at iteration {i}")
                             break
@@ -124,11 +124,11 @@ class GradientDescent:
                         continue
                     else:
                         # Cost decreased, slightly increase learning rate
-                        current_lr *= 1.05
-                        cost_increases = 0
+                        currentLR *= 1.05
+                        costIncreases = 0
                 
                 # Check for convergence - relative improvement
-                if cost > 0 and abs((newCost - cost) / cost) < self.tolerance:
+                if self.checkConvergence(cost, newCost):
                     if self.verbose:
                         print(f"Converged after {i+1} iterations")
                     break
@@ -139,14 +139,14 @@ class GradientDescent:
                 costHistory.append(cost)
                 
                 if self.verbose and i % 100 == 0:
-                    print(f"Iteration {i}, cost: {cost}, learning rate: {current_lr}")
+                    print(f"Iteration {i}, cost: {cost}, learning rate: {currentLR}")
                     
             except (RuntimeWarning, OverflowError, FloatingPointError) as e:
                 if self.verbose:
                     print(f"Numerical error at iteration {i}: {e}")
                 # Reduce learning rate
-                current_lr *= 0.1
-                if current_lr < 1e-10:
+                currentLR *= 0.1
+                if currentLR < 1e-10:
                     break
                 continue
 

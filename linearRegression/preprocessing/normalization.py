@@ -40,7 +40,7 @@ class FeatureNormalizer:
             
         return (X - self.mean) / self.std
         
-    def fit_transform(self, X):
+    def fitTransform(self, X):
         """
         Fit and transform the features.
         
@@ -55,7 +55,7 @@ class FeatureNormalizer:
         self.fit(X)
         return self.transform(X)
         
-    def inverse_transform(self, X_normalized):
+    def inverseTransform(self, X_normalized):
         """
         Convert normalized features back to original scale.
         

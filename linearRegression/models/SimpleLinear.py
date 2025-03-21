@@ -27,7 +27,6 @@ class SimpleLinearModel(BaseModel):
         --------
         self: returns an instance of self
         """
-        # Store original data type (pandas or numpy)
         self.is_pandas = isinstance(X, pd.DataFrame) or isinstance(X, pd.Series)
         self.X_columns = X.columns if isinstance(X, pd.DataFrame) else None
         
@@ -36,7 +35,7 @@ class SimpleLinearModel(BaseModel):
         
         # Normalize features if enabled
         if self.normalize:
-            X_normalized = self.normalizer.fit_transform(X)
+            X_normalized = self.normalizer.fitTransform(X)
         else:
             X_normalized = X
             
@@ -46,10 +45,8 @@ class SimpleLinearModel(BaseModel):
         # Initialize parameters with zeros
         initial_params = np.zeros(2)  # [intercept, coefficient]
         
-        # Train the model using gradient descent
         parameters, history = self.optimizer.optimize(X_with_bias, y, initial_params)
 
-        # Store the parameters
         self.intercept = parameters[0]
         self.coefficients = parameters[1]  # This is a scalar for simple linear regression
         self.isFitted = True
