@@ -35,30 +35,30 @@ targets = ["Salary", "Ice Cream Profits", "Grade"]
 feature_cols = ["YearsExperience", "Temperature", "studytime"]
 
 # Different learning rates for different datasets
-learning_rates = [0.01, 0.001, 0.05]
-max_iterations = [5000, 5000, 5000]
+learningRates = [0.01, 0.001, 0.05]
+maxIterations = [5000, 5000, 5000]
 
 # Plot settings
 plt.figure(figsize=(18, 12))
 
 for i in range(len(datasets)):
     dataset = datasets[i]
-    feature_col = feature_cols[i]
-    target_col = targets[i]
+    featureCol = feature_cols[i]
+    targetCol = targets[i]
     
     # Print dataset information
-    print(f"\nDataset {i+1}: {feature_col} vs {target_col}")
+    print(f"\nDataset {i+1}: {featureCol} vs {targetCol}")
     print(f"Shape: {dataset.shape}")
-    print(f"Feature range: {dataset[feature_col].min()} - {dataset[feature_col].max()}")
-    print(f"Target range: {dataset[target_col].min()} - {dataset[target_col].max()}")
+    print(f"Feature range: {dataset[featureCol].min()} - {dataset[featureCol].max()}")
+    print(f"Target range: {dataset[targetCol].min()} - {dataset[targetCol].max()}")
     
     # Split the data
-    X_train, X_test, y_train, y_test = trainTestSplitData(dataset, target_col)
+    X_train, X_test, y_train, y_test = trainTestSplitData(dataset, targetCol)
     
     # Create and train the model with appropriate parameters
     model = SimpleLinearModel(
-        learning_rate=learning_rates[i],
-        max_iterations=max_iterations[i],
+        learning_rate=learningRates[i],
+        max_iterations=maxIterations[i],
         normalize=True
     )
     
@@ -66,8 +66,8 @@ for i in range(len(datasets)):
     model.fit(X_train, y_train)
     
     # Make predictions
-    train_predictions = model.predict(X_train)
-    test_predictions = model.predict(X_test)
+    trainPredictions = model.predict(X_train)
+    testPredictions = model.predict(X_test)
     
     # Calculate scores
     train_score = model.score(X_train, y_train)
@@ -87,37 +87,37 @@ for i in range(len(datasets)):
     X_train_sorted = X_train_np[X_train_sorted_idx]
     
     # For train predictions, keep the same type as the output from predict
-    if isinstance(train_predictions, pd.Series):
-        train_pred_sorted = train_predictions.iloc[X_train_sorted_idx].values
+    if isinstance(trainPredictions, pd.Series):
+        sortedTrainPrediction = trainPredictions.iloc[X_train_sorted_idx].values
     else:
-        train_pred_sorted = train_predictions[X_train_sorted_idx]
+        sortedTrainPrediction = trainPredictions[X_train_sorted_idx]
     
     plt.plot(
         X_train_sorted, 
-        train_pred_sorted, 
+        sortedTrainPrediction, 
         color='red', 
         linewidth=2, 
         label='Prediction'
     )
     
-    plt.title(f'{feature_col} vs {target_col}\nR² = {test_score:.4f}')
-    plt.xlabel(feature_col)
-    plt.ylabel(target_col)
+    plt.title(f'{featureCol} vs {targetCol}\nR² = {test_score:.4f}')
+    plt.xlabel(featureCol)
+    plt.ylabel(targetCol)
     plt.legend()
     
     # Plot residuals
     plt.subplot(2, 3, i+4)
     
     # Ensure residuals are calculated with matching types
-    if isinstance(test_predictions, pd.Series):
-        residuals = y_test.values - test_predictions.values
+    if isinstance(testPredictions, pd.Series):
+        residuals = y_test.values - testPredictions.values
     else:
-        residuals = y_test.values - test_predictions
+        residuals = y_test.values - testPredictions
     
     plt.scatter(X_test, residuals, color='purple')
     plt.axhline(y=0, color='red', linestyle='-')
     plt.title(f'Residuals plot\nMean = {np.mean(residuals):.4f}')
-    plt.xlabel(feature_col)
+    plt.xlabel(featureCol)
     plt.ylabel('Residuals')
     
     print("---------------------------------------------------------")

@@ -9,8 +9,8 @@ class SimpleLinearModel(BaseModel):
     def __init__(self, learning_rate=0.01, max_iterations=1000, normalize=True):
         super().__init__()
         self.optimizer = GradientDescent(learningRate=learning_rate, maxIterations=max_iterations)
-        self.intercept = None
-        self.coefficients = None
+        self.bias = None
+        self.weights = None
         self.normalize = normalize
         self.normalizer = FeatureNormalizer() if normalize else None
 
@@ -47,12 +47,12 @@ class SimpleLinearModel(BaseModel):
         
         parameters, history = self.optimizer.optimize(X_with_bias, y, initial_params)
 
-        self.intercept = parameters[0]
-        self.coefficients = parameters[1]  # This is a scalar for simple linear regression
+        self.bias = parameters[0]
+        self.weights = parameters[1]  # This is a scalar for simple linear regression
         self.isFitted = True
 
         # Print training results
-        print(f"Model trained with coefficient: {self.coefficients} and intercept: {self.intercept}")
+        print(f"Model trained with coefficient: {self.weights} and intercept: {self.bias}")
         print(f"Initial cost: {history[0]}")
         print(f"Final cost after {self.optimizer.getMaxIterations()} iterations: {history[-1]}")
 
@@ -70,7 +70,7 @@ class SimpleLinearModel(BaseModel):
         --------
         yPred: Array of predicted values (N predictions)
         """
-        if self.coefficients is None or self.intercept is None:
+        if self.weights is None or self.bias is None:
             raise Exception("Model has not been trained yet.")
 
         # Check if X is a pandas DataFrame or Series
@@ -87,7 +87,7 @@ class SimpleLinearModel(BaseModel):
             X = self.normalizer.transform(X)
         
         # Make predictions (ensuring 1D output)
-        predictions = self.intercept + X.flatten() * self.coefficients
+        predictions = self.bias + X.flatten() * self.weights
         
         # Return as pandas Series if input was pandas
         if is_pandas_input and original_index is not None:
