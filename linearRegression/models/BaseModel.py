@@ -6,8 +6,8 @@ class BaseModel(ABC):
     
     def __init__(self):
         # These are common attributes among all regression models
-        self.coefficients = None  # Storing model weights
-        self.intercept = None  # Storing the intercept term
+        self.weights = None  # Storing model weights
+        self.bias = None  # Storing the intercept term
         self.isFitted = False  # Track if the model has been trained or not
 
     @abstractmethod
@@ -94,7 +94,121 @@ class BaseModel(ABC):
         # R² sometimes can be negative if the model is worse than predicting the mean
         # In practice, it's usually capped at 0
         return max(0.0, r2) if not np.isnan(r2) else 0.0
+    
 
+    def adjustedR2(self, X, y):
+        """
+        Calculate the adjusted R^2 for the model.
+
+        Parameters:
+        -----------
+        X: Array of test data (N x M array of N samples and M features)
+        y: Array of actual values (N samples)
+
+        Returns:
+        --------
+        score: float, adjusted R^2 score
+        """
+        # Get the R^2 score
+        r2 = self.score(X, y)
+        
+        # Number of samples
+        n = X.shape[0]
+        
+        # Number of features
+        p = X.shape[1]
+        
+        # Calculate the adjusted R^2
+        adjusted_r2 = 1 - (1 - r2) * (n - 1) / (n - p - 1)
+        
+        return adjusted_r2
+
+    def crossValidation(self, X, y, k=5):
+        """
+        Perform k-fold cross-validation on the model.
+
+        Parameters:
+        -----------
+        X: Array or DataFrame of data (N x M array of N samples and M features)
+        y: Array or Series of target values (N samples)
+        k: Number of folds
+
+        Returns:
+        --------
+        scores: Array of R^2 scores for each fold
+        """
+        print(f"Starting {k}-fold cross-validation...")
+        
+        # Convert to numpy arrays if pandas objects
+        is_pandas_X = isinstance(X, pd.DataFrame) or isinstance(X, pd.Series)
+        is_pandas_y = isinstance(y, pd.DataFrame) or isinstance(y, pd.Series)
+        
+        X_copy, y_copy = self.validateData(X, y)
+        
+        # Get the number of samples
+        n = X_copy.shape[0]
+        print(f"Total samples for cross-validation: {n}")
+        
+        # Create random indices for shuffling
+        indices = np.random.permutation(n)
+        
+        # Create fold indices
+        fold_size = n // k
+        fold_indices = [indices[i * fold_size:(i + 1) * fold_size] for i in range(k)]
+        
+        # If n is not divisible by k, add the remaining indices to the last fold
+        if n % k != 0:
+            fold_indices[-1] = np.concatenate([fold_indices[-1], indices[k * fold_size:]])
+        
+        scores = []
+        
+        for i in range(k):
+            
+            # Get test indices for this fold
+            test_idx = fold_indices[i]
+            
+            # Get training indices (all indices not in test_idx)
+            train_idx = np.concatenate([fold_indices[j] for j in range(k) if j != i])
+            
+            
+            # Extract train and test data
+            if is_pandas_X:
+                X_train = X.iloc[train_idx] if isinstance(X, pd.DataFrame) else X.loc[train_idx]
+                X_test = X.iloc[test_idx] if isinstance(X, pd.DataFrame) else X.loc[test_idx]
+            else:
+                X_train = X_copy[train_idx]
+                X_test = X_copy[test_idx]
+                
+            if is_pandas_y:
+                y_train = y.iloc[train_idx] if isinstance(y, pd.DataFrame) else y.loc[train_idx]
+                y_test = y.iloc[test_idx] if isinstance(y, pd.DataFrame) else y.loc[test_idx]
+            else:
+                y_train = y_copy[train_idx]
+                y_test = y_copy[test_idx]
+            
+            # Create a new instance of the same model class
+            if hasattr(self, 'optimizer') and hasattr(self, 'normalize'):
+                # For MultipleLinearModel
+                model_copy = self.__class__(
+                    learning_rate=self.optimizer.getLearningRate() if hasattr(self.optimizer, 'getLearningRate') else 0.01,
+                    max_iterations=self.optimizer.getMaxIterations() if hasattr(self.optimizer, 'getMaxIterations') else 1000,
+                    normalize=self.normalize
+                )
+            else:
+                # Generic fallback
+                model_copy = self.__class__()
+            
+            # Train the model
+            model_copy.fit(X_train, y_train, verbose=False)
+            
+            # Score the model
+            score = model_copy.score(X_test, y_test)
+
+            scores.append(score)
+        
+        print(f"Cross-validation complete. Mean R² score: {np.mean(scores):.4f}")
+        return scores
+    
     def validateData(self, X, y=None):
         """
         Validate and convert input data to proper numpy arrays.
@@ -141,6 +255,9 @@ class BaseModel(ABC):
                 raise ValueError(f"X and y must have the same number of samples, got {X.shape[0]} and {y.shape[0]}.")
 
         # Check for missing or infinite values
+        if not np.issubdtype(X.dtype, np.number):
+            raise TypeError("X contains non-numeric data, which is not supported")
+        
         if np.isnan(X).any():
             raise ValueError("X contains missing values")
 
@@ -165,8 +282,8 @@ class BaseModel(ABC):
         params: Dictionary of model parameters
         """
         return {
-            "coefficients": self.coefficients,
-            "intercept": self.intercept,
+            "coefficients": self.weights,
+            "intercept": self.bias,
             "isFitted": self.isFitted
         }
     
@@ -178,6 +295,6 @@ class BaseModel(ABC):
         -----------
         params: Dictionary of model parameters
         """
-        self.coefficients = params.get("coefficients", self.coefficients)
-        self.intercept = params.get("intercept", self.intercept)
+        self.weights = params.get("coefficients", self.weights)
+        self.bias = params.get("intercept", self.bias)
         self.isFitted = params.get("isFitted", self.isFitted)
