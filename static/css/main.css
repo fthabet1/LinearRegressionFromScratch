@@ -1,0 +1,299 @@
+/* Define CSS variables for light/dark mode theming */
+:root {
+    --primary-color: #5755d9;
+    --bg-color: #ffffff;
+    --text-color: #3b4351;
+    --card-bg: #ffffff;
+    --border-color: #efefef;
+    --input-bg: #f8f9fa;
+    --chart-bg: #ffffff;
+    --footer-bg: #f8f9fa;
+    --shadow-color: rgba(0, 0, 0, 0.15);
+  }
+  
+  /* Dark mode theme variables */
+  .dark-mode {
+    --primary-color: #7b78fc;
+    --bg-color: #1c1c24;
+    --text-color: #f1f1f1;
+    --card-bg: #2a2a35;
+    --border-color: #3a3a48;
+    --input-bg: #35353f;
+    --chart-bg: #232330;
+    --footer-bg: #232330;
+    --shadow-color: rgba(0, 0, 0, 0.4);
+  }
+  
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  /* Dark mode toggle button */
+  .dark-mode-toggle {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1.2rem;
+    margin-left: 1rem;
+    color: inherit;
+  }
+  
+  /* Dark mode toggle icons */
+  .dark-mode-toggle i {
+    font-size: 1.4rem;
+  }
+  
+  /* Custom classes to override Spectre defaults */
+  .card {
+    background-color: var(--card-bg);
+    border-radius: 0.3rem;
+    box-shadow: 0 0.1rem 0.4rem var(--shadow-color);
+    border: 1px solid var(--border-color);
+    transition: background-color 0.3s ease;
+  }
+  
+  .card .card-header {
+    padding: 0.8rem 0.8rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .card .card-body {
+    padding: 1.2rem;
+  }
+  
+  .form-input, .form-select {
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+    color: var(--text-color);
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  
+  .form-input:focus, .form-select:focus {
+    border-color: var(--primary-color);
+  }
+  
+  .form-label {
+    color: var(--text-color);
+  }
+  
+  /* Custom tooltip for form elements */
+  .tooltip {
+    position: relative;
+    display: inline-block;
+  }
+  
+  .tooltip:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+  }
+  
+  .tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    width: 200px;
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -100px;
+    transition: opacity 0.3s;
+    box-shadow: 0 0 10px var(--shadow-color);
+    border: 1px solid var(--border-color);
+  }
+  
+  .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: var(--border-color) transparent transparent transparent;
+  }
+  
+  /* Custom styling for dark mode charts */
+  .chart-container {
+    background-color: var(--chart-bg);
+    padding: 1rem;
+    border-radius: 0.3rem;
+    transition: background-color 0.3s ease;
+  }
+  
+  /* Custom styling for feature checkboxes container */
+  #feature_columns_container {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    padding: 0.8rem;
+    background-color: var(--input-bg);
+  }
+  
+  /* Custom panel for model information */
+  .panel {
+    border: 1px solid var(--border-color);
+    border-radius: 0.3rem;
+    background-color: var(--card-bg);
+    margin-bottom: 1rem;
+  }
+  
+  .panel .panel-header {
+    padding: 0.6rem 0.8rem;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 0.3rem 0.3rem 0 0;
+  }
+  
+  .panel .panel-body {
+    padding: 0.8rem;
+  }
+  
+  /* Table styling for dark mode */
+  .table {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+  }
+  
+  .table.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .dark-mode .table.table-striped tbody tr:nth-of-type(odd) {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+  
+  .table td, .table th {
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  /* Custom hover effect for interactive elements */
+  .btn, .form-input, .form-select, .card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .btn:hover, .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.2rem 0.6rem var(--shadow-color);
+  }
+  
+  /* Footer styling */
+  footer {
+    background-color: var(--footer-bg);
+    padding: 1.5rem 0;
+    margin-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    transition: background-color 0.3s ease;
+  }
+  
+  /* Responsive image sizing */
+  .img-responsive {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  /* Feature Column Styling */
+  .feature-checkbox-label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    cursor: pointer;
+  }
+  
+  .feature-checkbox-label input {
+    margin-right: 0.5rem;
+  }
+  
+  /* Custom loading spinner */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 2rem;
+  }
+  
+  .loading::after {
+    content: "";
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s infinite linear;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  /* Badge for model type */
+  .badge {
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    display: inline-block;
+  }
+  
+  /* Animation for results section */
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .results-container {
+    animation: fadeIn 0.5s ease;
+  }
+  
+  /* Accordion in dark mode */
+  .accordion .accordion-header {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+  }
+  
+  .accordion .accordion-body {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+  
+  /* Chip styling for dark mode */
+  .chip {
+    background-color: var(--input-bg);
+    color: var(--text-color);
+  }
+  
+  /* Utility classes */
+  .text-center {
+    text-align: center;
+  }
+  
+  .mb-0 {
+    margin-bottom: 0;
+  }
+  
+  .mb-2 {
+    margin-bottom: 0.8rem;
+  }
+  
+  .mt-2 {
+    margin-top: 0.8rem;
+  }
+  
+  .p-2 {
+    padding: 0.8rem;
+  }

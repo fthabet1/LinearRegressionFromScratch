@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results - Linear Regression Lab</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">Linear Regression</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/about">About</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-lg-10 mx-auto">
+                <div class="card shadow mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Model Results: {{ results.model_type|capitalize }} Regression</h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5>Model Performance</h5>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Training Set</th>
+                                            <th>Test Set</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Mean Squared Error</td>
+                                            <td>{{ "%.4f"|format(results.train_mse) }}</td>
+                                            <td>{{ "%.4f"|format(results.test_mse) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>R² Score</td>
+                                            <td>{{ "%.4f"|format(results.train_r2) }}</td>
+                                            <td>{{ "%.4f"|format(results.test_r2) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h5>Model Parameters</h5>
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Parameter</th>
+                                            <th>Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Intercept (Bias)</td>
+                                            <td>{{ "%.4f"|format(results.intercept) }}</td>
+                                        </tr>
+                                        {% for i in range(results.feature_cols|length) %}
+                                        <tr>
+                                            <td>{{ results.feature_cols[i] }}</td>
+                                            <td>{{ "%.4f"|format(results.coefficients[i]) }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    {% if 'cost_history' in results.plots %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">Cost History</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="data:image/png;base64,{{ results.plots.cost_history }}" class="img-fluid" alt="Cost History">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if 'actual_vs_predicted' in results.plots %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">Actual vs Predicted Values</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="data:image/png;base64,{{ results.plots.actual_vs_predicted }}" class="img-fluid" alt="Actual vs Predicted">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if 'feature_importance' in results.plots %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">Feature Coefficients</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="data:image/png;base64,{{ results.plots.feature_importance }}" class="img-fluid" alt="Feature Importance">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if 'regression_line' in results.plots %}
+                    <div class="col-md-6 mb-4">
+                        <div class="card shadow h-100">
+                            <div class="card-header">
+                                <h5 class="mb-0">Regression Line</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <img src="data:image/png;base64,{{ results.plots.regression_line }}" class="img-fluid" alt="Regression Line">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="text-center mt-3 mb-5">
+                    <a href="/" class="btn btn-primary">Train Another Model</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-3 mt-5">
+        <div class="container text-center">
+            <p class="text-muted mb-0">Linear Regression - Built from scratch</p>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
