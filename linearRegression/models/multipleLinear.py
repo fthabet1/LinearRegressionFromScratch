@@ -102,5 +102,4 @@ class MultipleLinearModel(BaseModel):
         score: The R² score
         """
         # Ensure prediction uses same preprocessing as training
-        predictions = self.predict(X)
         return super().score(X, y)
