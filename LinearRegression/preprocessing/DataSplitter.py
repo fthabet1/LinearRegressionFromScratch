@@ -21,16 +21,18 @@ def trainTestSplitData(df, targetCol, testSize=0.2):
     y_train: Series, training target values
     y_test: Series, testing target values
     """
-
     X = df.drop(targetCol, axis=1)
     y = df[targetCol]
 
     # Calculate the number of rows for the training set
     trainRows = int((1 - testSize) * len(df))
 
-    # Split the data
-    X_train, X_test = X.iloc[:trainRows], X.iloc[trainRows:]
-    y_train, y_test = y.iloc[:trainRows], y.iloc[trainRows:]
+    # Create random indices for shuffling
+    indices = np.random.permutation(len(df))
+
+    # Split the data using random indices
+    X_train, X_test = X.iloc[indices[:trainRows]], X.iloc[indices[trainRows:]]
+    y_train, y_test = y.iloc[indices[:trainRows]], y.iloc[indices[trainRows:]]
 
     return X_train, X_test, y_train, y_test
 
