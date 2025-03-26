@@ -42,40 +42,13 @@ class MultipleLinearModel(BaseModel):
         self.weights = np.zeros(X_normalized.shape[1])
         self.bias = 0.0
         
-        # Track cost history
-        cost_history = []
-        
-        # Number of samples
-        n_samples = X_normalized.shape[0]
-        
         # Gradient descent for specified iterations
-        for i in range(self.optimizer.getMaxIterations()):
-            # Make predictions with current weights and bias
-            y_pred = np.dot(X_normalized, self.weights) + self.bias
-            
-            # Calculate errors
-            errors = y_pred - y
-            
-            # Calculate gradients
-            dw = (1/n_samples) * np.dot(X_normalized.T, errors)
-            db = (1/n_samples) * np.sum(errors)
-            
-            # Update weights and bias
-            self.weights -= self.optimizer.getLearningRate() * dw
-            self.bias -= self.optimizer.getLearningRate() * db
-            
-            # Calculate cost
-            cost = (1/(2*n_samples)) * np.sum(np.square(errors))
-            cost_history.append(cost)
-            
-            # Check for convergence
-            if i > 0 and self.optimizer.checkConvergence(cost_history[-2], cost):
-                break
+        self.weights, self.bias, costHistory = self.optimizer.optimize(X_normalized, y)
         
         if verbose:
             print(f"Model trained with coefficients: {self.weights} and intercept: {self.bias}")
-            print(f"Initial cost: {cost_history[0]}")
-            print(f"Final cost after {i+1} iterations: {cost_history[-1]}")
+            print(f"Initial cost: {costHistory[0]}")
+            print(f"Final cost: {costHistory[-1]}")
 
         return self
     
@@ -97,7 +70,7 @@ class MultipleLinearModel(BaseModel):
         # Handle pandas input
         is_pandas = isinstance(X, pd.DataFrame) or isinstance(X, pd.Series)
         if is_pandas:
-            original_index = X.index
+            originalIndex = X.index
             
         # Convert pandas to numpy if necessary
         X, _ = self.validateData(X)
@@ -111,7 +84,7 @@ class MultipleLinearModel(BaseModel):
         
         # Return as pandas Series if input was pandas
         if is_pandas:
-            return pd.Series(predictions, index=original_index)
+            return pd.Series(predictions, index=originalIndex)
         
         return predictions
         

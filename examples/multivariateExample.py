@@ -162,40 +162,40 @@ for i in range(len(datasets)):
     print(f"TEST SET R² SCORE: {test_score:.4f}")
     print(f"TEST SET MSE: {test_mse:.4f}")
     
-    # Plot the results - bar chart of CV scores
-    plt.subplot(3, 3, i*3+1)
-    plt.bar(range(1, k_folds+1), cv_scores, color='skyblue')
-    plt.axhline(y=mean_cv_score, color='red', linestyle='--', label=f'Mean CV: {mean_cv_score:.4f}')
-    plt.axhline(y=test_score, color='green', linestyle='--', label=f'Test: {test_score:.4f}')
-    plt.title(f'{targetCol}: CV vs Test R² Scores')
-    plt.xlabel('CV Fold')
-    plt.ylabel('R² Score')
-    plt.xticks(range(1, k_folds+1))
-    plt.ylim(0, 1.0)
-    plt.legend()
+    # # Plot the results - bar chart of CV scores
+    # plt.subplot(3, 3, i*3+1)
+    # plt.bar(range(1, k_folds+1), cv_scores, color='skyblue')
+    # plt.axhline(y=mean_cv_score, color='red', linestyle='--', label=f'Mean CV: {mean_cv_score:.4f}')
+    # plt.axhline(y=test_score, color='green', linestyle='--', label=f'Test: {test_score:.4f}')
+    # plt.title(f'{targetCol}: CV vs Test R² Scores')
+    # plt.xlabel('CV Fold')
+    # plt.ylabel('R² Score')
+    # plt.xticks(range(1, k_folds+1))
+    # plt.ylim(0, 1.0)
+    # plt.legend()
     
-    # Box plot of the CV scores
-    plt.subplot(3, 3, i*3+2)
-    plt.boxplot(cv_scores)
-    plt.title(f'{targetCol}: Distribution of CV Scores')
-    plt.ylabel('R² Score')
-    plt.axhline(y=mean_cv_score, color='red', linestyle='--', label='Mean CV')
-    plt.axhline(y=test_score, color='green', linestyle='--', label='Test Score')
-    plt.legend()
-    plt.ylim(0, 1.0)
+    # # Box plot of the CV scores
+    # plt.subplot(3, 3, i*3+2)
+    # plt.boxplot(cv_scores)
+    # plt.title(f'{targetCol}: Distribution of CV Scores')
+    # plt.ylabel('R² Score')
+    # plt.axhline(y=mean_cv_score, color='red', linestyle='--', label='Mean CV')
+    # plt.axhline(y=test_score, color='green', linestyle='--', label='Test Score')
+    # plt.legend()
+    # plt.ylim(0, 1.0)
     
-    # Actual vs Predicted plot for test set
-    plt.subplot(3, 3, i*3+3)
-    plt.scatter(y_test, test_predictions, alpha=0.5)
-    plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
-    plt.title(f'{targetCol}: Test Set Predictions\nR² = {test_score:.4f}')
-    plt.xlabel('Actual Values')
-    plt.ylabel('Predicted Values')
+    # # Actual vs Predicted plot for test set
+    # plt.subplot(3, 3, i*3+3)
+    # plt.scatter(y_test, test_predictions, alpha=0.5)
+    # plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+    # plt.title(f'{targetCol}: Test Set Predictions\nR² = {test_score:.4f}')
+    # plt.xlabel('Actual Values')
+    # plt.ylabel('Predicted Values')
     
     print("---------------------------------------------------------")
 
-plt.tight_layout()
-plt.show()
+# plt.tight_layout()
+# plt.show()
 
 
 

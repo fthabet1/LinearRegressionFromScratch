@@ -190,7 +190,6 @@ class BaseModel(ABC):
             if hasattr(self, 'optimizer') and hasattr(self, 'normalize'):
                 # For MultipleLinearModel
                 model_copy = self.__class__(
-                    learning_rate=self.optimizer.getLearningRate() if hasattr(self.optimizer, 'getLearningRate') else 0.01,
                     max_iterations=self.optimizer.getMaxIterations() if hasattr(self.optimizer, 'getMaxIterations') else 1000,
                     normalize=self.normalize
                 )

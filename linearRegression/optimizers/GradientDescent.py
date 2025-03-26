@@ -45,6 +45,41 @@ class GradientDescent:
     def setVerbose(self, verbose):
         self.verbose = verbose
 
+    def computeCost(self, X, y, weights, bias):
+        """
+        Compute the mean squared error cost.
+
+        Parameters:
+        -----------
+        X: Array of training data (N x M array of N samples and M features)
+        y: Array of target values (N samples)
+        weights: Array of weights for each feature
+        bias: Scalar bias term
+
+        Returns:
+        --------
+        cost: Mean squared error cost
+        """
+        m = len(y)
+        predictions = np.dot(X, weights) + bias
+        cost = (1/(2*m)) * np.sum(np.square(predictions - y))
+        return cost
+
+    def checkConvergence(self, oldCost, newCost):
+        """
+        Check if the optimization has converged.
+
+        Parameters:
+        -----------
+        oldCost: Previous iteration's cost
+        newCost: Current iteration's cost
+
+        Returns:
+        --------
+        bool: True if converged, False otherwise
+        """
+        return abs(oldCost - newCost) < self.tolerance
+
     def optimize(self, X, y, initialParams=None):
         """
         Optimize the model parameters using gradient descent.
@@ -53,25 +88,28 @@ class GradientDescent:
         -----------
         X: Array of training data (N x M array of N samples and M features)
         y: Array of target values (N samples)
-        initalParams: Array of initial model parameters
+        initialParams: Array of initial model parameters (optional)
 
         Returns:
         --------
-        params: Array of optimized model parameters
+        (weights, bias): Tuple of optimized weights and bias
         costHistory: Array of cost function history
         """
         X = np.array(X)
         y = np.array(y)
+        m = len(y)  # number of samples
         costHistory = []
 
-        # Type checking and initialization
+        # Initialize weights and bias
         if initialParams is not None:
-            params = np.array(initialParams, dtype=np.float64)
+            weights = np.array(initialParams[:-1], dtype=np.float64)
+            bias = initialParams[-1]
         else:
-            params = np.zeros(X.shape[1], dtype=np.float64)
+            weights = np.zeros(X.shape[1], dtype=np.float64)
+            bias = 0.0
 
         # Calculate initial cost
-        cost = self.computeCost(X, y, params)
+        cost = self.computeCost(X, y, weights, bias)
         costHistory.append(cost)
         
         if self.verbose:
@@ -84,74 +122,49 @@ class GradientDescent:
         costIncreases = 0
         
         # Gradient descent iterations
-        for i in range(self.maxIterations):
-            gradient = self.computeGradient(X, y, params)
+        for iteration in range(self.maxIterations):
+            # Make predictions
+            predictions = np.dot(X, weights) + bias
             
-            # Check for NaN or Inf in gradient
-            if np.any(np.isnan(gradient)) or np.any(np.isinf(gradient)):
-                if self.verbose:
-                    print(f"Warning: NaN or Inf detected in gradient at iteration {i}")
-                
-                # Reduce learning rate significantly and reset parameters
-                currentLR *= 0.1
-                if currentLR < 1e-10:
-                    if self.verbose:
-                        print("Learning rate too small, stopping optimization")
-                    break
-                
-                continue
+            # Calculate errors
+            errors = predictions - y
             
-            # Calculate new parameters
-            newParams = params - currentLR * gradient
+            # Calculate gradients
+            dw = (1/m) * np.dot(X.T, errors)
+            db = (1/m) * np.sum(errors)
+            
+            # Update parameters
+            weights = weights - currentLR * dw
+            bias = bias - currentLR * db
             
             # Calculate new cost
-            try:
-                newCost = self.computeCost(X, y, newParams)
-                
-                # Adaptive learning rate
-                if self.adaptive_lr:
-                    if newCost > cost:
-                        # Cost increased, reduce learning rate
-                        currentLR *= 0.5
-                        costIncreases += 1
-                        
-                        if costIncreases > 5:
-                            if self.verbose:
-                                print(f"Too many cost increases, stopping at iteration {i}")
-                            break
-                            
-                        # Try again with smaller learning rate
-                        continue
-                    else:
-                        # Cost decreased, slightly increase learning rate
-                        currentLR *= 1.05
-                        costIncreases = 0
-                
-                # Check for convergence - relative improvement
-                if self.checkConvergence(cost, newCost):
-                    if self.verbose:
-                        print(f"Converged after {i+1} iterations")
-                    break
-                
-                # Update parameters and cost
-                params = newParams
-                cost = newCost
-                costHistory.append(cost)
-                
-                if self.verbose and i % 100 == 0:
-                    print(f"Iteration {i}, cost: {cost}, learning rate: {currentLR}")
-                    
-            except (RuntimeWarning, OverflowError, FloatingPointError) as e:
+            newCost = self.computeCost(X, y, weights, bias)
+            costHistory.append(newCost)
+            
+            # Check for convergence
+            if self.checkConvergence(cost, newCost):
                 if self.verbose:
-                    print(f"Numerical error at iteration {i}: {e}")
-                # Reduce learning rate
-                currentLR *= 0.1
-                if currentLR < 1e-10:
-                    break
-                continue
+                    print(f"Converged after {iteration + 1} iterations")
+                break
+            
+            # Implement basic learning rate adjustment
+            if newCost > cost:
+                costIncreases += 1
+                if costIncreases > 2:
+                    currentLR *= 0.5
+                    costIncreases = 0
+                    if self.verbose:
+                        print(f"Reducing learning rate to {currentLR}")
+            else:
+                costIncreases = 0
+            
+            cost = newCost
+            
+            if self.verbose and (iteration + 1) % 100 == 0:
+                print(f"Iteration {iteration + 1}, Cost: {newCost}")
+                
+        return weights, bias, costHistory
 
-        return params, costHistory
-    
     def computeGradient(self, X, y, params):
         """
         Computer the gradient of the cost function
@@ -191,60 +204,3 @@ class GradientDescent:
             if self.verbose:
                 print(f"Error computing gradient: {e}")
             return np.zeros_like(params)
-
-    def computeCost(self, X, y, params):
-        """
-        Compute the cost function for linear regression.
-        The cost function for linear regression is the mean squared error (MSE):
-        J(θ) = (1/2m) * Σ(hθ(x) - y)^2
-
-        Parameters:
-        -----------
-        X: Array of training data (N x M array of N samples and M features)
-        y: Array of target values (N samples)
-        params: Array of model parameters
-
-        Returns:
-        --------
-        cost: float, the cost of the model
-        """
-        try:
-            # Number of samples
-            m = X.shape[0]
-
-            # Calculate predictions with current parameters
-            predictions = X @ params
-
-            # Check for overflow in squared error calculation
-            errors = predictions - y
-            squared_errors = np.square(errors)
-            
-            if np.any(np.isinf(squared_errors)):
-                return float('inf')
-                
-            # Calculate the mean squared error
-            # (1/2m) * Σ(hθ(x) - y)^2
-            cost = (1/(2*m)) * np.sum(squared_errors)
-            
-            return cost
-            
-        except Exception as e:
-            print(f"Error computing cost: {e}")
-            return float('inf')
-
-    def checkConvergence(self, oldCost, newCost):
-        """
-        Check to see if the optimizer has converged.
-
-        Parameters:
-        -----------
-        oldCost: float, the cost of the model at the previous iteration
-        newCost: float, the cost of the model at the current iteration
-
-        Returns:
-        --------
-        converged: bool, whether the optimizer has converged
-        """
-        if oldCost == 0:
-            return abs(newCost) < self.tolerance
-        return abs((newCost - oldCost) / oldCost) < self.tolerance
