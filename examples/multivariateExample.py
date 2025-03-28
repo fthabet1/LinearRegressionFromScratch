@@ -114,8 +114,8 @@ for i in range(len(datasets)):
     
     # Create model for cross-validation
     cv_model = MultipleLinearModel(
-        learning_rate=0.01,
-        max_iterations=maxIterations,
+        learning_rate=0.05,
+        max_iterations=5000,
         normalize=True
     )
     
@@ -142,8 +142,8 @@ for i in range(len(datasets)):
 
     # Create and train model
     model = MultipleLinearModel(
-        learning_rate=0.01,
-        max_iterations=maxIterations,
+        learning_rate=0.05,
+        max_iterations=5000,
         normalize=True
     )
     
@@ -154,9 +154,27 @@ for i in range(len(datasets)):
     
     # Calculate MSE
     if isinstance(test_predictions, pd.Series):
+        # Ensure both arrays are the same length
+        if len(y_test) != len(test_predictions):
+            if len(y_test) < len(test_predictions):
+                test_predictions = test_predictions.iloc[:len(y_test)]
+            else:
+                raise ValueError(f"Predictions length less than test set length")
         test_mse = np.mean((y_test.values - test_predictions.values) ** 2)
     else:
-        test_mse = np.mean((y_test.values - test_predictions) ** 2)
+        # Convert to numpy arrays and ensure same length
+        y_test_np = y_test.values if isinstance(y_test, pd.Series) else y_test
+        test_predictions_np = np.array(test_predictions)
+        
+        # Ensure both are 1D
+        y_test_np = y_test_np.flatten()
+        test_predictions_np = test_predictions_np.flatten()
+        
+        # Ensure lengths match
+        if len(y_test_np) < len(test_predictions_np):
+            test_predictions_np = test_predictions_np[:len(y_test_np)]
+        
+        test_mse = np.mean((y_test_np - test_predictions_np) ** 2)
     
     # Print test results
     print(f"TEST SET R² SCORE: {test_score:.4f}")
