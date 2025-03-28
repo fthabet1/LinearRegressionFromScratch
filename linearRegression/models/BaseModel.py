@@ -10,6 +10,19 @@ class BaseModel(ABC):
         self.bias = None  # Storing the intercept term
         self.isFitted = False  # Track if the model has been trained or not
 
+    def getWeights(self):
+        return self.weights
+    
+    def getBias(self):
+        return self.bias
+    
+    def getParams(self):
+        return self.weights, self.bias
+    
+    def setParams(self, weights, bias):
+        self.weights = weights
+        self.bias = bias
+
     @abstractmethod
     def fit(self, X, y):
         """
@@ -54,18 +67,15 @@ class BaseModel(ABC):
         --------
         score: float, R^2 score
         """
-        # Convert inputs to consistent formats
-        is_pandas_y = isinstance(y, pd.DataFrame) or isinstance(y, pd.Series)
+        isPandas = isinstance(y, pd.DataFrame) or isinstance(y, pd.Series)
         
-        if is_pandas_y:
+        if isPandas:
             y = y.values
         else:
             y = np.array(y)
 
-        # Get predictions
         predictions = self.predict(X)
         
-        # Convert predictions to numpy if needed
         if isinstance(predictions, pd.DataFrame) or isinstance(predictions, pd.Series):
             predictions = predictions.values
         else:
@@ -75,20 +85,13 @@ class BaseModel(ABC):
         y = y.flatten()
         predictions = predictions.flatten()
 
-        # Calculate the mean of y
         y_mean = np.mean(y)
-        
-        # Calculate the sum of squared residuals
         ss_res = np.sum((y - predictions) ** 2)
-        
-        # Calculate the total sum of squares
         ss_tot = np.sum((y - y_mean) ** 2)
         
-        # Avoid division by zero
         if ss_tot == 0:
             return 0.0
             
-        # Calculate R^2
         r2 = 1 - (ss_res / ss_tot)
         
         # R² sometimes can be negative if the model is worse than predicting the mean
@@ -145,14 +148,12 @@ class BaseModel(ABC):
         
         X_copy, y_copy = self.validateData(X, y)
         
-        # Get the number of samples
         n = X_copy.shape[0]
         print(f"Total samples for cross-validation: {n}")
         
         # Create random indices for shuffling
         indices = np.random.permutation(n)
         
-        # Create fold indices
         fold_size = n // k
         fold_indices = [indices[i * fold_size:(i + 1) * fold_size] for i in range(k)]
         
@@ -161,6 +162,8 @@ class BaseModel(ABC):
             fold_indices[-1] = np.concatenate([fold_indices[-1], indices[k * fold_size:]])
         
         scores = []
+        prevWeights = None
+        prevBias = None
         
         for i in range(k):
             
@@ -171,7 +174,6 @@ class BaseModel(ABC):
             train_idx = np.concatenate([fold_indices[j] for j in range(k) if j != i])
             
             
-            # Extract train and test data
             if is_pandas_X:
                 X_train = X.iloc[train_idx] if isinstance(X, pd.DataFrame) else X.loc[train_idx]
                 X_test = X.iloc[test_idx] if isinstance(X, pd.DataFrame) else X.loc[test_idx]
@@ -197,10 +199,14 @@ class BaseModel(ABC):
                 # Generic fallback
                 model_copy = self.__class__()
             
-            # Train the model
+            if prevWeights is not None and prevBias is not None:
+                model_copy.setParams(weights=prevWeights, bias=prevBias)
+
+
             model_copy.fit(X_train, y_train, verbose=False)
+            prevWeights = model_copy.getWeights()
+            prevBias = model_copy.getBias()
             
-            # Score the model
             score = model_copy.score(X_test, y_test)
 
             scores.append(score)
@@ -272,21 +278,7 @@ class BaseModel(ABC):
 
         return X, y if y is not None else None
     
-    def getParams(self):
-        """
-        Get the parameters of the model.
-
-        Returns:
-        --------
-        params: Dictionary of model parameters
-        """
-        return {
-            "coefficients": self.weights,
-            "intercept": self.bias,
-            "isFitted": self.isFitted
-        }
     
-    def setParams(self, **params):
         """
         Set the parameters of the model.
 
