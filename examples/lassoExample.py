@@ -181,14 +181,14 @@ for i in range(len(datasets)):
     print(f"TEST SET MSE: {test_mse:.4f}")
     
     # Print feature importance
-    feature_importance = pd.DataFrame({
-        'Feature': X.columns,
-        'Coefficient': model.weights
-    })
-    feature_importance = feature_importance.sort_values('Coefficient', key=abs, ascending=False)
-    print(f"Features and their coefficients:\n {feature_importance}")
-    print("\nTop 5 most important features:")
-    print(feature_importance.head())
+    # feature_importance = pd.DataFrame({
+    #     'Feature': X.columns,
+    #     'Coefficient': model.weights
+    # })
+    # feature_importance = feature_importance.sort_values('Coefficient', key=abs, ascending=False)
+    # print(f"Features and their coefficients:\n {feature_importance}")
+    # print("\nTop 5 most important features:")
+    # print(feature_importance.head())
     
     print("---------------------------------------------------------")
 
