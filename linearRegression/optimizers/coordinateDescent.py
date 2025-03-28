@@ -221,7 +221,6 @@ class CoordinateDescent:
         # Convergence criteria:
         # 1. Objective improvement is small
         # 2. Parameter changes are small
-        # 3. Duality gap is small
         # 4. Minimum improvement threshold is met
         return (obj_improvement < self.tolerance and 
                 param_change < self.tolerance)
