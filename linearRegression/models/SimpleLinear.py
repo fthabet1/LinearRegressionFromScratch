@@ -33,28 +33,54 @@ class SimpleLinearModel(BaseModel):
         # Validate and prepare data
         X, y = self.validateData(X, y)
         
-        # Normalize features if enabled
+        # Store y statistics for denormalization during prediction
         if self.normalize:
+            self.y_mean = np.mean(y)
+            self.y_std = np.std(y)
             X_normalized = self.normalizer.fitTransform(X)
+            y_normalized = (y - self.y_mean) / self.y_std
         else:
             X_normalized = X
-            
-        # Add bias term (column of ones)
-        X_with_bias = np.c_[np.ones(X_normalized.shape[0]), X_normalized]
-
-        # Initialize parameters with zeros
-        initial_params = np.zeros(2)  # [intercept, coefficient]
+            y_normalized = y
         
-        parameters, history = self.optimizer.optimize(X_with_bias, y, initial_params)
-
-        self.bias = parameters[0]
-        self.weights = parameters[1]  # This is a scalar for simple linear regression
+        # For univariate regression, ensure X is properly shaped
+        if X_normalized.shape[1] != 1:
+            raise ValueError("SimpleLinearModel expects exactly one feature (univariate regression)")
+        
+        # Initialize parameters with better starting values
+        # For univariate regression, we can directly compute the coefficients
+        x_mean = np.mean(X_normalized)
+        y_mean = np.mean(y_normalized)
+        numerator = np.sum((X_normalized.flatten() - x_mean) * (y_normalized - y_mean))
+        denominator = np.sum((X_normalized.flatten() - x_mean) ** 2)
+        
+        if denominator != 0:
+            initial_weights = numerator / denominator
+        else:
+            initial_weights = 0.0
+        
+        initial_bias = y_mean - initial_weights * x_mean
+        
+        # Make sure the weights is a scalar for univariate regression
+        if isinstance(initial_weights, np.ndarray):
+            initial_weights = float(initial_weights.item()) if initial_weights.size == 1 else float(initial_weights[0])
+        
+        # Train the model
+        self.bias, weights_array, costHistory = self.optimizer.optimize(
+            X_normalized, 
+            y_normalized, 
+            initial_bias, 
+            initial_weights
+        )
+        
+        # Ensure weights is a scalar
+        self.weights = float(weights_array) if isinstance(weights_array, np.ndarray) else weights_array
         self.isFitted = True
 
         # Print training results
         print(f"Model trained with coefficient: {self.weights} and intercept: {self.bias}")
-        print(f"Initial cost: {history[0]}")
-        print(f"Final cost after {self.optimizer.getMaxIterations()} iterations: {history[-1]}")
+        print(f"Initial cost: {costHistory[0]}")
+        print(f"Final cost after {self.optimizer.getMaxIterations()} iterations: {costHistory[-1]}")
 
         return self
 
@@ -74,10 +100,10 @@ class SimpleLinearModel(BaseModel):
             raise Exception("Model has not been trained yet.")
 
         # Check if X is a pandas DataFrame or Series
-        is_pandas_input = isinstance(X, pd.DataFrame) or isinstance(X, pd.Series)
+        isPandasInput = isinstance(X, pd.DataFrame) or isinstance(X, pd.Series)
         
         # Store original index if pandas
-        original_index = X.index if is_pandas_input else None
+        originalIndex = X.index if isPandasInput else None
         
         # Validate data
         X, _ = self.validateData(X)
@@ -86,11 +112,18 @@ class SimpleLinearModel(BaseModel):
         if self.normalize:
             X = self.normalizer.transform(X)
         
-        # Make predictions (ensuring 1D output)
-        predictions = self.bias + X.flatten() * self.weights
+        # Ensure X is properly flattened for univariate regression
+        X_flat = X.flatten()
+        
+        # Make predictions using scalar multiplication
+        predictions = self.bias + X_flat * self.weights
+        
+        # Denormalize predictions if target was normalized
+        if self.normalize and hasattr(self, 'y_mean') and hasattr(self, 'y_std'):
+            predictions = predictions * self.y_std + self.y_mean
         
         # Return as pandas Series if input was pandas
-        if is_pandas_input and original_index is not None:
-            return pd.Series(predictions, index=original_index)
+        if isPandasInput and originalIndex is not None:
+            return pd.Series(predictions, index=originalIndex)
         
         return predictions
