@@ -7,3 +7,7 @@ LinearRegression/preprocessing/__pycache__/DataSplitter.cpython-312.pyc
 LinearRegression/utils/__pycache__/Regularization.cpython-312.pyc
 LinearRegression/optimizers/__pycache__/CoordinateDescent.cpython-312.pyc
 LinearRegression/models/__pycache__/Lasso.cpython-312.pyc
+LinearRegression/models/__pycache__/LassoRegression.cpython-312.pyc
+LinearRegression/models/__pycache__/MultivariateLinearModel.cpython-312.pyc
+LinearRegression/models/__pycache__/UnivariateLinearModel.cpython-312.pyc
+LinearRegression/models/__pycache__/RidgeRegression.cpython-312.pyc
