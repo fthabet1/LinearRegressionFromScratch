@@ -1,90 +1,26 @@
-'''
-    The purpose of this file is to demonstrate the performance of the
-    SimpleLinearModel some univariate datasets. The datasets is generated
-    from Kaggle and can be found at the following links:
-    https://www.kaggle.com/datasets/nikhil7280/student-performance-multiple-linear-regression
-    https://www.kaggle.com/datasets/fedesoriano/the-boston-houseprice-data
-    https://www.kaggle.com/datasets/jacksondivakarr/sample34
-'''
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from LinearRegression.models.MultivariateLinearModel import MultivariateLinearModel
-from LinearRegression.utils.DataLoader import loadDatasetFromKaggle
+from LinearRegression.utils.DataLoader import loadDatasetFromCSV
 from LinearRegression.preprocessing.DataSplitter import trainTestSplitData
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt 
 
 # Load the datasets
-studentData = loadDatasetFromKaggle("nikhil7280/student-performance-multiple-linear-regression")
-housingData = loadDatasetFromKaggle("fedesoriano/the-boston-houseprice-data")
-carPriceData = loadDatasetFromKaggle("jacksondivakarr/sample34")
+studentData = loadDatasetFromCSV("../notebooks/multivariateStudentData.csv")
+housingData = loadDatasetFromCSV("../notebooks/multivariateHousingData.csv")
+carPriceData = loadDatasetFromCSV("../notebooks/multivariateCarPricesData.csv")
 
-# Touching up the datasets for univariate analysis
 
-# Dataset 1: Student performance data
-
-studentData["Extracurricular Activities"] = (studentData["Extracurricular Activities"] == "yes").astype(int)
-
-# Drop rows with missing values
-studentData.dropna(inplace=True)
-
-# Dataset 2: Housing data
-# All values are numeric so we will just drop the rows with missing values
-housingData.dropna(inplace=True)
-
-# Dataset 3: Car price data
-
-# Drop the first column since it is unnamed
-carPriceData.drop(carPriceData.columns[0], axis=1, inplace=True)
-
-carPriceData["Maruti"] = (carPriceData["name"] == "Maruti").astype(int)
-carPriceData["Hyundai"] = (carPriceData["name"] == "Hyundai").astype(int)
-carPriceData["Honda"] = (carPriceData["name"] == "Honda").astype(int)
-carPriceData["Toyota"] = (carPriceData["name"] == "Toyota").astype(int)
-carPriceData["Ford"] = (carPriceData["name"] == "Ford").astype(int)
-carPriceData["Mahindra"] = (carPriceData["name"] == "Mahindra").astype(int)
-carPriceData["Tata"] = (carPriceData["name"] == "Tata").astype(int)
-carPriceData["Chevrolet"] = (carPriceData["name"] == "Chevrolet").astype(int)
-carPriceData["Renault"] = (carPriceData["name"] == "Renault").astype(int)
-carPriceData["Volkswagen"] = (carPriceData["name"] == "Volkswagen").astype(int)
-carPriceData.drop("name", axis=1, inplace=True)
-
-carPriceData["Petrol"] = (carPriceData["fuel"] == "Petrol").astype(int)
-carPriceData["Diesel"] = (carPriceData["fuel"] == "Diesel").astype(int)
-carPriceData["CNG"] = (carPriceData["fuel"] == "CNG").astype(int)
-carPriceData["LPG"] = (carPriceData["fuel"] == "LPG").astype(int)
-carPriceData.drop("fuel", axis=1, inplace=True)
-
-carPriceData["Individual"] = (carPriceData["seller_type"] == "Individual").astype(int)
-carPriceData["Dealer"] = (carPriceData["seller_type"] == "Dealer").astype(int)
-carPriceData["TrustmarkDealer"] = (carPriceData["seller_type"] == "Trustmark Dealer").astype(int)
-carPriceData.drop("seller_type", axis=1, inplace=True)
-
-carPriceData["Manual"] = (carPriceData["transmission"] == "Manual").astype(int)
-carPriceData["Automatic"] = (carPriceData["transmission"] == "Automatic").astype(int)
-carPriceData.drop("transmission", axis=1, inplace=True)
-
-carPriceData["FirstOwner"] = (carPriceData["owner"] == "First Owner").astype(int)
-carPriceData["SecondOwner"] = (carPriceData["owner"] == "Second Owner").astype(int)
-carPriceData["ThirdOwner"] = (carPriceData["owner"] == "Third Owner").astype(int)
-carPriceData["Fourth&AboveOwner"] = (carPriceData["owner"] == "Fourth & Above Owner").astype(int)
-carPriceData["TestDriveCar"] = (carPriceData["owner"] == "Test Drive Car").astype(int)
-carPriceData.drop("owner", axis=1, inplace=True)
-
-carPriceData.drop("Mileage Unit", axis=1, inplace=True)
-
-carPriceData.dropna(inplace=True)
-
-# Multiple Linear Regression on the datasets
 
 maxIterations = 5000
 k_folds = 5  # Number of folds for cross-validation
 
 datasets = [studentData, housingData, carPriceData]
-targets = ["Performance Index", "MEDV", "selling_price"]
+targets = ["Performance Index", "median_house_value", "selling_price"]
 
 # Plot settings
 plt.figure(figsize=(15, 15))

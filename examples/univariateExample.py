@@ -1,37 +1,21 @@
-'''
-    The purpose of this file is to demonstrate the performance of the
-    SimpleLinearModel some univariate datasets. The datasets is generated
-    from Kaggle and can be found at the following links:
-    https://www.kaggle.com/datasets/abhishek14398/salary-dataset-simple-linear-regression
-    https://www.kaggle.com/datasets/vinaysidharth/temperature-vs-icecream-dataset
-    https://www.kaggle.com/datasets/devansodariya/student-performance-data
-'''
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from LinearRegression.models.UnivariateLinearModel import UnivariateLinearModel
-from LinearRegression.utils.DataLoader import loadDatasetFromKaggle
+from LinearRegression.utils.DataLoader import loadDatasetFromCSV
 from LinearRegression.preprocessing.DataSplitter import trainTestSplitData
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the datasets
-salaryData = loadDatasetFromKaggle("abhishek14398/salary-dataset-simple-linear-regression")
-temperatureData = loadDatasetFromKaggle("vinaysidharth/temperature-vs-icecream-dataset")
-studentData = loadDatasetFromKaggle("devansodariya/student-performance-data")
+salaryData = loadDatasetFromCSV("../notebooks/univariateSalaryData.csv")
+iceCreamData = loadDatasetFromCSV("../notebooks/univariateIceCreamData.csv")
+studentData = loadDatasetFromCSV("../notebooks/univariateStudentData.csv")
 
-# Touch up datasets for univariate analysis
-studentData["Grade"] = studentData["G1"] + studentData["G2"] + studentData["G3"]
-studentData["Scores"] = (studentData["Grade"] / 3).round(2)
-
-salaryData = salaryData[["YearsExperience", "Salary"]]
-temperatureData = temperatureData[["Temperature", "Ice Cream Profits"]]
-studentData = studentData[["studytime", "Grade"]]
-
-datasets = [salaryData, temperatureData, studentData]
-targets = ["Salary", "Ice Cream Profits", "Grade"]
+datasets = [salaryData, iceCreamData, studentData]
+targets = ["Salary", "Ice Cream Profits", "Final Grade"]
 feature_cols = ["YearsExperience", "Temperature", "studytime"]
 
 # Different learning rates for different datasets
