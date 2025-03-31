@@ -1,19 +1,19 @@
 import pandas as pd
 import numpy as np
-from LinearRegression.models.MultipleLinear import MultipleLinearModel
-from LinearRegression.optimizers.GradientDescent import GradientDescent
+from LinearRegression.models.MultivariateLinearModel import MultivariateLinearModel
+from LinearRegression.optimizers.CoordinateDescent import CoordinateDescent
 
-class Ridge(MultipleLinearModel):
+class LassoRegression(MultivariateLinearModel):
 
-    def __init__(self, max_iterations=1000, normalize=True, verbose = False, lambda_=1.0):
+    def __init__(self, max_iterations=1000, normalize=True, verbose = False):
         super().__init__(max_iterations=max_iterations, normalize=normalize)
-        self.lambda_ = lambda_
+        self.lambda_ = 1.0
         self.verbose = verbose
-        self.optimizer = GradientDescent(maxIterations=max_iterations, lambda_=self.lambda_)
+        self.optimizer = CoordinateDescent(maxIterations=max_iterations, lambda_=self.lambda_)
 
-    def setLambda(self, lambda_, numSamples):
-        self.lambda_ = lambda_ / numSamples
-        self.optimizer.setLambda(self.lambda_)
+    def setLambda(self, lambda_):
+        self.lambda_ = lambda_
+        self.optimizer.setLambda(lambda_)
 
     def getLambda(self):
         return self.lambda_
@@ -44,18 +44,22 @@ class Ridge(MultipleLinearModel):
             X_normalized = X
 
         # Initial coefficients (one for each feature) and intercept
-        # Initialize with least squares solution
-        XTX = np.dot(X_normalized.T, X_normalized)
-        XTy = np.dot(X_normalized.T, y)
-        self.weights = np.linalg.solve(XTX + self.lambda_ * np.eye(X_normalized.shape[1]), XTy)
+        self.weights = np.zeros(X_normalized.shape[1])
         self.bias = 0.0
+        
+        # Track cost history
+        cost_history = []
+        
+        # Number of samples and features
+        m_samples = X_normalized.shape[0]
+        n_features = X_normalized.shape[1]
 
-        self.bias, self.weights, costHistory = self.optimizer.optimize(X_normalized, y, self.bias, self.weights)
+        self.weights, self.bias, cost_history = self.optimizer.optimize(X_normalized, y)
         
         if self.verbose:
             print(f"Model trained with coefficients: {self.weights} and intercept: {self.bias}")
-            print(f"Initial cost: {costHistory[0]}")
-            print(f"Final cost: {costHistory[-1]}")
+            print(f"Initial cost: {cost_history[0]}")
+            print(f"Final cost: {cost_history[-1]}")
 
         return self
     
@@ -65,28 +69,32 @@ class Ridge(MultipleLinearModel):
 
         Parameters:
         -----------
-        X: Array of data to make predictions on (N x M array of N samples and M features)"
+        X: Array of data to make predictions on (N x M array of N samples and M features)
 
         Returns:
         --------
-        yPred:   Array of predicted values (N predictions)
+        yPred: Array of predicted values (N predictions)
         """
 
         if self.weights is None or self.bias is None:
             raise Exception("Model has not been trained yet.")
-
+        
         is_pandas = isinstance(X, pd.DataFrame) or isinstance(X, pd.Series)
         if is_pandas:
             originalIndex = X.index
 
         X, _ = self.validateData(X)
 
-        if self.normalize:      
-            X = self.normalizer.transform(X)
+        if self.normalize:
+            X_normalized = self.normalizer.fitTransform(X)
+        else:
+            X_normalized = X
 
-        predictions = np.dot(X, self.weights) + self.bias
+        predictions = np.dot(X_normalized, self.weights) + self.bias
 
         if is_pandas:
             return pd.Series(predictions, index=originalIndex)
 
         return predictions
+    
+    

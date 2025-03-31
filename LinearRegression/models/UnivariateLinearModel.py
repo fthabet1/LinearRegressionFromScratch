@@ -4,7 +4,7 @@ from LinearRegression.models.BaseModel import BaseModel
 from LinearRegression.optimizers.GradientDescent import GradientDescent
 from LinearRegression.preprocessing.Normalization import FeatureNormalizer
 
-class SimpleLinearModel(BaseModel):
+class UnivariateLinearModel(BaseModel):
 
     def __init__(self, learning_rate=0.01, max_iterations=1000, normalize=True):
         super().__init__()

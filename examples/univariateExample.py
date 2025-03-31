@@ -10,7 +10,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from LinearRegression.models.SimpleLinear import SimpleLinearModel
+from LinearRegression.models.UnivariateLinearModel import UnivariateLinearModel
 from LinearRegression.utils.DataLoader import loadDatasetFromKaggle
 from LinearRegression.preprocessing.DataSplitter import trainTestSplitData
 import pandas as pd
@@ -56,7 +56,7 @@ for i in range(len(datasets)):
     X_train, X_test, y_train, y_test = trainTestSplitData(dataset, targetCol)
     
     # Create and train the model with appropriate parameters
-    model = SimpleLinearModel(
+    model = UnivariateLinearModel(
         learning_rate=learningRates[i],
         max_iterations=maxIterations[i],
         normalize=True

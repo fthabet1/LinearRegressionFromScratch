@@ -10,7 +10,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from LinearRegression.models.Lasso import Lasso
+from LinearRegression.models.LassoRegression import LassoRegression
 from LinearRegression.utils.DataLoader import loadDatasetFromKaggle
 from LinearRegression.preprocessing.DataSplitter import trainTestSplitData
 from LinearRegression.preprocessing.Normalization import FeatureNormalizer
@@ -126,7 +126,7 @@ for i in range(len(datasets)):
         print(f"\nTrying lambda = {lambda_}")
         
         # Create model for cross-validation
-        CV_model = Lasso(
+        CV_model = LassoRegression(
             max_iterations=maxIterations,
             normalize=True
         )
@@ -159,7 +159,7 @@ for i in range(len(datasets)):
     yTestNormalized = y_normalizer.transform(y_test.values.reshape(-1, 1)).flatten()
 
     # Create and train model with best lambda
-    model = Lasso(
+    model = LassoRegression(
         max_iterations=maxIterations,
         normalize=True
     )

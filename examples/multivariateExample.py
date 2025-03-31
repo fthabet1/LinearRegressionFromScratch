@@ -10,7 +10,7 @@ import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from LinearRegression.models.MultipleLinear import MultipleLinearModel
+from LinearRegression.models.MultivariateLinearModel import MultivariateLinearModel
 from LinearRegression.utils.DataLoader import loadDatasetFromKaggle
 from LinearRegression.preprocessing.DataSplitter import trainTestSplitData
 import pandas as pd
@@ -113,7 +113,7 @@ for i in range(len(datasets)):
     print(f"Performing {k_folds}-fold cross-validation:")
     
     # Create model for cross-validation
-    cv_model = MultipleLinearModel(
+    cv_model = MultivariateLinearModel(
         learning_rate=0.05,
         max_iterations=5000,
         normalize=True
@@ -141,7 +141,7 @@ for i in range(len(datasets)):
     print(f"Test set size: {X_test.shape[0]} samples")
 
     # Create and train model
-    model = MultipleLinearModel(
+    model = MultivariateLinearModel(
         learning_rate=0.05,
         max_iterations=5000,
         normalize=True
