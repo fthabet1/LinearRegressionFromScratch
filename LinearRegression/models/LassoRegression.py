@@ -91,11 +91,9 @@ class LassoRegression(MultivariateLinearModel):
         X, _ = self.validateData(X)
 
         if self.normalize:
-            X_normalized = self.normalizer.fitTransform(X)
-        else:
-            X_normalized = X
+            X = self.normalizer.transform(X)
 
-        predictions = np.dot(X_normalized, self.weights) + self.bias
+        predictions = np.dot(X, self.weights) + self.bias
 
         if is_pandas:
             return pd.Series(predictions, index=originalIndex)

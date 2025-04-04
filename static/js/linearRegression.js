@@ -52,7 +52,7 @@ class BaseModel {
     constructor() {
         this.weights = null;
         this.bias = null;
-        this.normalize = true;
+        this.normalize = false;
     }
 
     async fit(X, y) {
@@ -61,67 +61,9 @@ class BaseModel {
             throw new Error("Invalid input data");
         }
 
-        let X_train = X;
-        if (this.normalize) {
-            try {
-                // Fit and transform the data using the Python normalizer
-                const fitResponse = await fetch('/api/normalize/fit', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        modelType: this.modelType,
-                        X: X
-                    })
-                });
-
-                // Log the raw response for debugging
-                const fitResponseText = await fitResponse.clone().text();
-                console.log('Normalize fit response:', fitResponseText);
-
-                if (!fitResponse.ok) {
-                    throw new Error(`HTTP error! status: ${fitResponse.status}`);
-                }
-
-                const fitResult = JSON.parse(fitResponseText);
-                if (!fitResult.success) {
-                    throw new Error(fitResult.error || 'Normalization fitting failed');
-                }
-
-                const transformResponse = await fetch('/api/normalize/transform', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        modelType: this.modelType,
-                        X: X
-                    })
-                });
-
-                // Log the raw response for debugging
-                const transformResponseText = await transformResponse.clone().text();
-                console.log('Normalize transform response:', transformResponseText);
-
-                if (!transformResponse.ok) {
-                    throw new Error(`HTTP error! status: ${transformResponse.status}`);
-                }
-
-                const transformResult = JSON.parse(transformResponseText);
-                if (!transformResult.success) {
-                    throw new Error(transformResult.error || 'Normalization transform failed');
-                }
-
-                X_train = transformResult.X_normalized;
-            } catch (error) {
-                console.error('Normalization error:', error);
-                throw error;
-            }
-        }
-
         try {
-            // Train the model using the API
+            // Train the model using the API - send the raw data directly
+            // The Python model will handle normalization internally
             const response = await fetch('/api/train', {
                 method: 'POST',
                 headers: {
@@ -129,7 +71,7 @@ class BaseModel {
                 },
                 body: JSON.stringify({
                     modelType: this.modelType,
-                    X: X_train,
+                    X: X,
                     y: y,
                     learning_rate: this.learning_rate,
                     max_iterations: this.max_iterations,
@@ -140,28 +82,26 @@ class BaseModel {
             // Log the request data for debugging
             console.log('Train request data:', {
                 modelType: this.modelType,
-                X: X_train,
-                y: y,
+                X_shape: `${X.length} samples x ${X[0].length || 1} features`,
+                y_length: y.length,
                 learning_rate: this.learning_rate,
                 max_iterations: this.max_iterations,
                 params: this.getParams()
             });
 
-            // Log the raw response for debugging
-            const responseText = await response.clone().text();
-            console.log('Train response:', responseText);
-
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const result = JSON.parse(responseText);
+            const result = await response.json();
             if (!result.success) {
                 throw new Error(result.error || 'Training failed');
             }
 
             this.weights = result.weights;
             this.bias = result.bias;
+            
+            return this;
         } catch (error) {
             console.error('Training error:', error);
             throw error;
@@ -173,39 +113,9 @@ class BaseModel {
             throw new Error("Model not trained yet");
         }
 
-        let X_test = X;
-        if (this.normalize) {
-            try {
-                // Transform the test data using the Python normalizer
-                const response = await fetch('/api/normalize/transform', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        modelType: this.modelType,
-                        X: X
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                if (!result.success) {
-                    throw new Error(result.error || 'Normalization transform failed');
-                }
-
-                X_test = result.X_normalized;
-            } catch (error) {
-                console.error('Normalization error during prediction:', error);
-                throw error;
-            }
-        }
-
         try {
-            // Make predictions using the API
+            // Make predictions using the API - send raw data directly
+            // The Python model will handle normalization internally
             const response = await fetch('/api/predict', {
                 method: 'POST',
                 headers: {
@@ -213,7 +123,7 @@ class BaseModel {
                 },
                 body: JSON.stringify({
                     modelType: this.modelType,
-                    X: X_test
+                    X: X
                 })
             });
 
@@ -238,39 +148,9 @@ class BaseModel {
             throw new Error("Model not trained yet");
         }
 
-        let X_test = X;
-        if (this.normalize) {
-            try {
-                // Transform the test data using the Python normalizer
-                const response = await fetch('/api/normalize/transform', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        modelType: this.modelType,
-                        X: X
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const result = await response.json();
-                if (!result.success) {
-                    throw new Error(result.error || 'Normalization transform failed');
-                }
-
-                X_test = result.X_normalized;
-            } catch (error) {
-                console.error('Normalization error during scoring:', error);
-                throw error;
-            }
-        }
-
         try {
-            // Calculate R² score using the API
+            // Calculate R² score using the API - send raw data directly
+            // The Python model will handle normalization internally
             const response = await fetch('/api/score', {
                 method: 'POST',
                 headers: {
@@ -278,7 +158,7 @@ class BaseModel {
                 },
                 body: JSON.stringify({
                     modelType: this.modelType,
-                    X: X_test,
+                    X: X,
                     y: y
                 })
             });

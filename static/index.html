@@ -96,15 +96,14 @@
                             <h6>Model Performance</h6>
                             <div class="card mb-3">
                                 <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0">Cross-Validation Results</h6>
-                                    <span class="badge bg-primary">5-Fold CV on Training Data</span>
+                                    <h6 class="mb-0">Model Training Results</h6>
                                 </div>
                                 <div class="card-body py-2">
                                     <div class="row">
                                         <div class="col-md-6">
                                             <div class="card">
                                                 <div class="card-body py-2">
-                                                    <h6 class="card-title">Training Data (CV)</h6>
+                                                    <h6 class="card-title">Training Data Metrics</h6>
                                                     <p class="mb-1">R² Score: <span id="r2Score">-</span></p>
                                                     <p class="mb-0">MSE: <span id="mse">-</span></p>
                                                 </div>
@@ -113,10 +112,9 @@
                                         <div class="col-md-6">
                                             <div class="card">
                                                 <div class="card-body py-2">
-                                                    <h6 class="card-title">Test Data (Unseen)</h6>
-                                                    <p class="mb-1">R² Score: <span id="r2ScoreTest">-</span></p>
-                                                    <p class="mb-0">MSE: <span id="mseTest">-</span></p>
-                                                    <p class="text-muted small mt-1 mb-0">Updated after predictions</p>
+                                                    <h6 class="card-title">Training Performance</h6>
+                                                    <p class="mb-1">Time: <span id="trainTime">-</span> sec</p>
+                                                    <p class="mb-0">Cost Improvement: <span id="costImprovement">-</span>%</p>
                                                 </div>
                                             </div>
                                         </div>
@@ -126,24 +124,14 @@
                             
                             <div class="card">
                                 <div class="card-header py-2 d-flex justify-content-between align-items-center">
-                                    <h6 class="mb-0">Final Evaluation Metrics</h6>
-                                    <span class="badge bg-info">Updated with "Make Predictions"</span>
+                                    <h6 class="mb-0">Prediction Results</h6>
                                 </div>
                                 <div class="card-body py-2">
                                     <div class="row">
-                                        <div class="col-md-6">
+                                        <div class="col-md-12">
                                             <div class="card">
                                                 <div class="card-body py-2">
-                                                    <h6 class="card-title">Training Data (Final)</h6>
-                                                    <p class="mb-1">R² Score: <span id="r2ScorePredTrain">-</span></p>
-                                                    <p class="mb-0">MSE: <span id="msePredTrain">-</span></p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="card">
-                                                <div class="card-body py-2">
-                                                    <h6 class="card-title">Test Data (Final)</h6>
+                                                    <h6 class="card-title">Test Data Metrics</h6>
                                                     <p class="mb-1">R² Score: <span id="r2ScorePredTest">-</span></p>
                                                     <p class="mb-0">MSE: <span id="msePredTest">-</span></p>
                                                 </div>

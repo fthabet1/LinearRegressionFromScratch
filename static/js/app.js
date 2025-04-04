@@ -1,82 +1,77 @@
-// Function to load CSV datasets
+// Function to load CSV datasets using the backend API
 async function loadDatasetFromCSV(filename) {
     try {
-        const response = await fetch(`/datasets/${filename}`);
+        console.log(`Loading dataset ${filename} via API`);
+        
+        const response = await fetch('/api/load_dataset', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filename: filename
+            })
+        });
+        
         if (!response.ok) {
-            throw new Error(`Failed to load dataset: ${response.statusText}`);
+            const errorText = await response.text();
+            throw new Error(`Failed to load dataset: ${errorText}`);
         }
         
-        const csvText = await response.text();
-        const lines = csvText.trim().split('\n');
-        const headers = lines[0].split(',').map(h => h.trim());
+        const result = await response.json();
         
-        // Determine feature and target columns
-        const featureColumns = headers.slice(0, -1);
-        const targetColumn = headers[headers.length - 1];
-        
-        const data = {
-            X: [],
-            y: [],
-            xLabel: featureColumns.join(', '),
-            yLabel: targetColumn
-        };
-        
-        for (let i = 1; i < lines.length; i++) {
-            const values = lines[i].split(',').map(v => parseFloat(v.trim()));
-            
-            // Skip lines with NaN values
-            if (!values.some(isNaN)) {
-                if (featureColumns.length === 1) {
-                    // Univariate case
-                    data.X.push([values[0]]);
-                } else {
-                    // Multivariate case
-                    data.X.push(values.slice(0, -1));
-                }
-                data.y.push(values[values.length - 1]);
-            }
+        if (!result.success) {
+            throw new Error(result.error || 'Dataset loading failed');
         }
         
-        return data;
+        console.log(`Dataset ${filename} loaded successfully`);
+        return result.data;
     } catch (error) {
         console.error('Error loading dataset:', error);
         throw error;
     }
 }
 
-// Function to split data into train and test sets
-function trainTestSplit(data, testSize = 0.2) {
-    // Calculate the number of samples for test set
-    const numSamples = data.X.length;
-    const testCount = Math.floor(numSamples * testSize);
-    
-    // Create random indices for shuffling
-    const indices = [...Array(numSamples).keys()];
-    for (let i = indices.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [indices[i], indices[j]] = [indices[j], indices[i]]; // Swap elements
+// Function to split data into train and test sets using the backend API
+async function trainTestSplit(data, testSize = 0.2) {
+    try {
+        console.log(`Splitting data with test_size=${testSize} via API`);
+        
+        const response = await fetch('/api/train_test_split', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                X: data.X,
+                y: data.y,
+                xLabel: data.xLabel,
+                yLabel: data.yLabel,
+                test_size: testSize,
+                random_state: 42 // Using a fixed random state for reproducibility
+            })
+        });
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Failed to split data: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Data splitting failed');
+        }
+        
+        console.log('Data split successfully');
+        return {
+            trainData: result.trainData,
+            testData: result.testData
+        };
+    } catch (error) {
+        console.error('Error splitting data:', error);
+        throw error;
     }
-    
-    // Split indices into train and test
-    const testIndices = indices.slice(0, testCount);
-    const trainIndices = indices.slice(testCount);
-    
-    // Create train and test datasets
-    const trainData = {
-        X: trainIndices.map(i => data.X[i]),
-        y: trainIndices.map(i => data.y[i]),
-        xLabel: data.xLabel,
-        yLabel: data.yLabel
-    };
-    
-    const testData = {
-        X: testIndices.map(i => data.X[i]),
-        y: testIndices.map(i => data.y[i]),
-        xLabel: data.xLabel,
-        yLabel: data.yLabel
-    };
-    
-    return { trainData, testData };
 }
 
 // Function for k-fold cross-validation using the backend DataSplitter
@@ -113,23 +108,34 @@ async function crossValidate(model, data, k = 5) {
             throw new Error(`Server error: ${errorText}`);
         }
         
-        const cvResults = await response.json();
+        const result = await response.json();
         
-        if (!cvResults.success) {
-            throw new Error(cvResults.error || 'Cross-validation failed');
+        if (!result.success) {
+            throw new Error(result.error || 'Cross-validation failed');
         }
         
-        console.log("Cross-validation results from backend:", cvResults);
+        console.log("Raw cross-validation results from backend:", result);
+        
+        // Transform the response to match our frontend's expected structure
+        const cvResults = {
+            avgR2: result.avg_r2,
+            avgMSE: result.avg_mse,
+            avg_training_time: result.avg_training_time,
+            avg_iterations: result.avg_iterations,
+            foldMetrics: result.fold_metrics,
+            finalModel: {
+                ...result.final_model,
+                // Ensure optimizer_info is properly passed through
+                optimizer_info: result.final_model?.optimizer_info || {}
+            }
+        };
+        
+        console.log("Transformed cross-validation results:", cvResults);
         
         // After cross-validation, the backend has also trained the final model
         // on the entire training dataset, so we don't need to do it again
         
-        return {
-            avgR2: cvResults.avg_r2,
-            avgMSE: cvResults.avg_mse,
-            foldMetrics: cvResults.fold_metrics,
-            finalModel: cvResults.final_model
-        };
+        return cvResults;
     } catch (error) {
         console.error("Error in cross-validation:", error);
         throw error;
@@ -196,13 +202,12 @@ const predictButton = document.getElementById('predictButton');
 const testModeToggle = document.getElementById('testModeToggle');
 const r2ScoreElement = document.getElementById('r2Score');
 const mseElement = document.getElementById('mse');
-const r2ScoreTestElement = document.getElementById('r2ScoreTest');
-const mseTestElement = document.getElementById('mseTest');
-const r2ScorePredTrainElement = document.getElementById('r2ScorePredTrain');
-const msePredTrainElement = document.getElementById('msePredTrain');
 const r2ScorePredTestElement = document.getElementById('r2ScorePredTest');
 const msePredTestElement = document.getElementById('msePredTest');
 const samplingInfoElement = document.getElementById('samplingInfo');
+const trainTimeElement = document.getElementById('trainTime');
+const iterationsElement = document.getElementById('iterations');
+const costImprovementElement = document.getElementById('costImprovement');
 
 // Initialize Chart.js
 function initChart() {
@@ -230,9 +235,19 @@ function initChart() {
                     borderColor: 'rgba(255, 99, 132, 1)',
                     data: [],
                     type: 'line',
-                    tension: 0.1
+                    tension: 0.1,
+                    hidden: true
+                },
+                {
+                    label: 'Testing Predictions',
+                    backgroundColor: 'rgba(153, 102, 255, 0.5)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    data: [],
+                    type: 'line',
+                    tension: 0.1,
+                    borderDash: [5, 5],
+                    hidden: true
                 }
-                // A fourth dataset for test predictions will be added dynamically when needed
             ]
         },
         options: {
@@ -285,123 +300,161 @@ function createModel() {
 function toggleViewMode() {
     if (viewMode === 'train') {
         viewMode = 'test';
+        testModeToggle.textContent = 'View Both';
     } else if (viewMode === 'test') {
         viewMode = 'both';
+        testModeToggle.textContent = 'View Training Data';
     } else {
         viewMode = 'train';
-    }
-    updateVisualization();
-    
-    if (viewMode === 'train') {
         testModeToggle.textContent = 'View Test Data';
-    } else if (viewMode === 'test') {
-        testModeToggle.textContent = 'View Both';
-    } else {
-        testModeToggle.textContent = 'View Training Data';
     }
+    
+    console.log("Toggled view mode to:", viewMode);
+    updateVisualization();
 }
 
 // Update visualization based on current view mode
 function updateVisualization() {
     if (!trainData || !testData) return;
     
+    console.log("Updating visualization with view mode:", viewMode);
+    console.log("Train predictions exists:", !!trainPredictions);
+    console.log("Test predictions exists:", !!testPredictions);
+    
     // Show/hide datasets based on view mode
     chart.data.datasets[0].hidden = viewMode !== 'train' && viewMode !== 'both'; // Training data
     chart.data.datasets[1].hidden = viewMode !== 'test' && viewMode !== 'both';  // Test data
     
-    // Update predictions lines
-    if (trainPredictions && (viewMode === 'train' || viewMode === 'both')) {
-        updatePredictionLine(trainData, trainPredictions, 2, 'rgba(255, 99, 132, 1)');
+    // Ensure we have a separate dataset for test predictions if it doesn't exist
+    if (chart.data.datasets.length < 4) {
+        console.log("Adding test prediction dataset to chart");
+        chart.data.datasets.push({
+            label: 'Test Predictions',
+            backgroundColor: 'rgba(153, 102, 255, 0.5)',
+            borderColor: 'rgba(153, 102, 255, 1)',
+            data: [],
+            type: 'line',
+            tension: 0.1,
+            borderDash: [5, 5],  // Dashed line for test predictions
+            hidden: true
+        });
     }
     
-    if (testPredictions && (viewMode === 'test' || viewMode === 'both')) {
-        // If showing both, we need to ensure we have separate prediction lines
-        if (viewMode === 'both') {
-            // Make sure we have a test prediction line (dataset index 3)
-            if (chart.data.datasets.length < 4) {
-                chart.data.datasets.push({
-                    label: 'Test Predictions',
-                    backgroundColor: 'rgba(153, 102, 255, 0.5)',
-                    borderColor: 'rgba(153, 102, 255, 1)',
-                    data: [],
-                    type: 'line',
-                    tension: 0.1,
-                    borderDash: [5, 5]  // Dashed line for test predictions
-                });
-            }
-            updatePredictionLine(testData, testPredictions, 3, 'rgba(153, 102, 255, 1)');
-        } else {
-            updatePredictionLine(testData, testPredictions, 2, 'rgba(255, 99, 132, 1)');
-        }
+    // Update training prediction line if it exists (always dataset 2)
+    if (trainPredictions) {
+        console.log("Updating training prediction line");
+        updatePredictionLine(trainData, trainPredictions, 2, 'rgba(255, 99, 132, 1)');
+        // Show/hide based on view mode
+        chart.data.datasets[2].hidden = viewMode !== 'train' && viewMode !== 'both';
+    } else {
+        // No training predictions yet
+        chart.data.datasets[2].hidden = true;
     }
+    
+    // Update test prediction line if it exists (always dataset 3)
+    if (testPredictions) {
+        console.log("Updating test prediction line");
+        updatePredictionLine(testData, testPredictions, 3, 'rgba(153, 102, 255, 1)');
+        // Show/hide based on view mode
+        chart.data.datasets[3].hidden = viewMode !== 'test' && viewMode !== 'both';
+    } else {
+        // No test predictions yet
+        chart.data.datasets[3].hidden = true;
+    }
+    
+    // Log the current state of chart datasets for debugging
+    console.log("Chart datasets state:");
+    chart.data.datasets.forEach((dataset, i) => {
+        console.log(`Dataset ${i}: ${dataset.label}, hidden: ${dataset.hidden}, points: ${dataset.data.length}`);
+    });
     
     chart.update();
 }
 
 // Update chart with new data
-function updateChart(fullData) {
+async function updateChart(fullData) {
     if (!chart || !fullData || !fullData.X || fullData.X.length === 0) return;
     
-    // Split data into train and test
-    const { trainData: newTrainData, testData: newTestData } = trainTestSplit(fullData);
-    trainData = newTrainData;
-    testData = newTestData;
-    
-    // For multivariate data, we'll plot against the first feature
-    const featureIdx = 0;
-    
-    // Function to sample data points for display
-    function sampleDataPoints(data, maxPoints) {
-        if (data.X.length <= maxPoints) {
-            return Array.from({ length: data.X.length }, (_, i) => i);
+    try {
+        // Reset predictions
+        trainPredictions = null;
+        testPredictions = null;
+        
+        // Split data into train and test using the API
+        const { trainData: newTrainData, testData: newTestData } = await trainTestSplit(fullData);
+        trainData = newTrainData;
+        testData = newTestData;
+        
+        // For multivariate data, we'll plot against the first feature
+        const featureIdx = 0;
+        
+        // Function to sample data points for display
+        function sampleDataPoints(data, maxPoints) {
+            if (data.X.length <= maxPoints) {
+                return Array.from({ length: data.X.length }, (_, i) => i);
+            }
+            
+            const step = Math.floor(data.X.length / maxPoints);
+            return Array.from({ length: maxPoints }, (_, i) => i * step)
+                .filter(idx => idx < data.X.length);
         }
         
-        const step = Math.floor(data.X.length / maxPoints);
-        return Array.from({ length: maxPoints }, (_, i) => i * step)
-            .filter(idx => idx < data.X.length);
-    }
-    
-    // Limit points for better performance
-    const maxPointsToDisplay = 500;
-    const trainDisplayIndices = sampleDataPoints(trainData, maxPointsToDisplay);
-    const testDisplayIndices = sampleDataPoints(testData, maxPointsToDisplay);
-    
-    // Show sampling info if we're sampling
-    samplingInfoElement.style.display = 
-        (trainData.X.length > maxPointsToDisplay || testData.X.length > maxPointsToDisplay) ? 
-        'block' : 'none';
-    
-    // Update training data points
-    chart.data.datasets[0].data = trainDisplayIndices.map(i => ({
-        x: trainData.X[i][featureIdx],
-        y: trainData.y[i]
-    }));
-    
-    // Update test data points
-    chart.data.datasets[1].data = testDisplayIndices.map(i => ({
-        x: testData.X[i][featureIdx],
-        y: testData.y[i]
-    }));
-    
-    // Clear prediction lines
-    chart.data.datasets[2].data = [];
-    if (chart.data.datasets.length > 3) {
+        // Limit points for better performance
+        const maxPointsToDisplay = 500;
+        const trainDisplayIndices = sampleDataPoints(trainData, maxPointsToDisplay);
+        const testDisplayIndices = sampleDataPoints(testData, maxPointsToDisplay);
+        
+        // Show sampling info if we're sampling
+        samplingInfoElement.style.display = 
+            (trainData.X.length > maxPointsToDisplay || testData.X.length > maxPointsToDisplay) ? 
+            'block' : 'none';
+        
+        // Update training data points
+        chart.data.datasets[0].data = trainDisplayIndices.map(i => ({
+            x: trainData.X[i][featureIdx],
+            y: trainData.y[i]
+        }));
+        
+        // Update test data points
+        chart.data.datasets[1].data = testDisplayIndices.map(i => ({
+            x: testData.X[i][featureIdx],
+            y: testData.y[i]
+        }));
+        
+        // Clear prediction lines
+        chart.data.datasets[2].data = [];
         chart.data.datasets[3].data = [];
+        
+        // Hide prediction lines until we have predictions
+        chart.data.datasets[2].hidden = true;
+        chart.data.datasets[3].hidden = true;
+        
+        // Update axis labels
+        chart.options.scales.x.title.text = fullData.xLabel.split(',')[0] || 'Feature';
+        chart.options.scales.y.title.text = fullData.yLabel || 'Target';
+        
+        // Update visibility based on view mode
+        updateVisualization();
+        
+        chart.update();
+        
+        console.log('Chart updated with train/test data');
+    } catch (error) {
+        console.error('Error updating chart:', error);
+        alert('Error updating chart: ' + error.message);
     }
-    
-    // Update axis labels
-    chart.options.scales.x.title.text = fullData.xLabel.split(',')[0] || 'Feature';
-    chart.options.scales.y.title.text = fullData.yLabel || 'Target';
-    
-    // Update visibility based on view mode
-    updateVisualization();
-    
-    chart.update();
 }
 
 // Update prediction line
 function updatePredictionLine(data, predictions, datasetIndex, color) {
-    if (!chart || !data || !predictions) return;
+    if (!chart || !data || !predictions) {
+        console.error("Missing required data for updatePredictionLine:", {
+            hasChart: !!chart,
+            hasData: !!data,
+            hasPredictions: !!predictions
+        });
+        return;
+    }
     
     const featureIdx = 0;
     
@@ -424,15 +477,44 @@ function updatePredictionLine(data, predictions, datasetIndex, color) {
         lineIndices = sortedIndices;
     }
     
+    console.log(`Updating prediction line for dataset ${datasetIndex}, points: ${lineIndices.length}`);
+    
+    // Ensure predictions array has values for all indices
+    if (Math.max(...lineIndices) >= predictions.length) {
+        console.error("Prediction index out of bounds:", {
+            maxIndex: Math.max(...lineIndices),
+            predictionsLength: predictions.length
+        });
+        // Limit indices to valid range
+        lineIndices = lineIndices.filter(i => i < predictions.length);
+    }
+    
     // Update prediction line
-    chart.data.datasets[datasetIndex].data = lineIndices.map(i => ({
+    const lineData = lineIndices.map(i => ({
         x: data.X[i][featureIdx],
         y: predictions[i]
     }));
     
+    // Verify we have valid data points
+    const hasInvalidPoints = lineData.some(point => 
+        isNaN(point.x) || isNaN(point.y) || 
+        point.x === undefined || point.y === undefined
+    );
+    
+    if (hasInvalidPoints) {
+        console.error("Invalid points detected in prediction line data");
+    } else {
+        console.log(`Generated ${lineData.length} valid points for prediction line`);
+    }
+    
+    chart.data.datasets[datasetIndex].data = lineData;
+    
     if (color) {
         chart.data.datasets[datasetIndex].borderColor = color;
     }
+    
+    // Explicitly set visibility
+    chart.data.datasets[datasetIndex].hidden = false;
 }
 
 // Calculate metrics (R² score and MSE)
@@ -449,25 +531,46 @@ async function calculateMetrics(X, y_true, y_pred) {
             };
         }
         
-        // For model predictions
-        // If we have a model trained, use the model's score method for R²
-        let r2 = 0;
-        if (currentModel && currentModel.score) {
-            r2 = await currentModel.score(X, y_true);
-        } else {
-            // Fallback to a simplified R² calculation
-            const mean = y_true.reduce((sum, val) => sum + val, 0) / y_true.length;
-            const totalSS = y_true.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0);
-            const residualSS = y_true.reduce((sum, val, i) => sum + Math.pow(val - y_pred[i], 2), 0);
-            r2 = 1 - (residualSS / totalSS);
-            // Cap R² at 0 (can be negative if model performs worse than mean baseline)
-            r2 = Math.max(0, r2);
+        // Call backend API for R² calculation
+        const r2Response = await fetch('/api/calculate_r2', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                y_true: y_true,
+                y_pred: y_pred
+            })
+        });
+        
+        const r2Data = await r2Response.json();
+        if (!r2Data.success) {
+            console.error("Error calculating R²:", r2Data.error);
+            throw new Error(r2Data.error);
         }
         
-        // Calculate Mean Squared Error
-        const mse = y_true.reduce((sum, val, i) => sum + Math.pow(val - y_pred[i], 2), 0) / y_true.length;
+        // Call backend API for MSE calculation
+        const mseResponse = await fetch('/api/calculate_mse', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                y_true: y_true,
+                y_pred: y_pred
+            })
+        });
         
-        return { r2, mse };
+        const mseData = await mseResponse.json();
+        if (!mseData.success) {
+            console.error("Error calculating MSE:", mseData.error);
+            throw new Error(mseData.error);
+        }
+        
+        return { 
+            r2: r2Data.r2, 
+            mse: mseData.mse 
+        };
     } catch (error) {
         console.error("Error calculating metrics:", error);
         return { r2: 0, mse: 0 };
@@ -561,16 +664,6 @@ function updateDatasetOptions(selectedModelType) {
     // Reset all metrics values
     resetAllMetrics();
     
-    // Clear any highlighting on prediction metrics cards
-    const trainMetricsCard = r2ScorePredTrainElement.closest('.card');
-    const testMetricsCard = r2ScorePredTestElement.closest('.card');
-    if (trainMetricsCard && testMetricsCard) {
-        trainMetricsCard.style.border = '';
-        testMetricsCard.style.border = '';
-        trainMetricsCard.title = '';
-        testMetricsCard.title = '';
-    }
-    
     // Disable buttons
     predictButton.disabled = true;
     if (testModeToggle) testModeToggle.disabled = true;
@@ -596,6 +689,11 @@ modelType.addEventListener('change', () => {
     const isRegularized = ['ridge', 'lasso'].includes(modelType.value);
     lambdaInput.parentElement.style.display = isRegularized ? 'block' : 'none';
     
+    // Reset current model and predictions
+    currentModel = null;
+    trainPredictions = null;
+    testPredictions = null;
+    
     // Update dataset options based on model type
     updateDatasetOptions(modelType.value);
 });
@@ -616,7 +714,7 @@ datasetSelect.addEventListener('change', async () => {
         console.log("Loaded dataset:", currentData);
         
         // Update chart with split data
-        updateChart(currentData);
+        await updateChart(currentData);
         
         // Check if current model type is compatible with the dataset
         const isUnivariate = modelType.value === 'univariate';
@@ -632,14 +730,11 @@ datasetSelect.addEventListener('change', async () => {
         // Reset all metrics
         resetAllMetrics();
         
-        // Clear any highlighting on prediction metrics cards
-        const trainMetricsCard = r2ScorePredTrainElement.closest('.card');
-        const testMetricsCard = r2ScorePredTestElement.closest('.card');
-        trainMetricsCard.style.border = '';
-        testMetricsCard.style.border = '';
-        trainMetricsCard.title = '';
-        testMetricsCard.title = '';
+        // Reset predictions
+        trainPredictions = null;
+        testPredictions = null;
         
+        // Disable buttons
         predictButton.disabled = true;
         if (testModeToggle) testModeToggle.disabled = true;
         
@@ -656,19 +751,15 @@ datasetSelect.addEventListener('change', async () => {
     }
 });
 
-// Function to reset all metrics to '-'
+// Function to reset all metrics
 function resetAllMetrics() {
-    // Reset train/test split metrics
     r2ScoreElement.textContent = '-';
     mseElement.textContent = '-';
-    r2ScoreTestElement.textContent = '-';
-    mseTestElement.textContent = '-';
-    
-    // Reset prediction metrics
-    r2ScorePredTrainElement.textContent = '-';
-    msePredTrainElement.textContent = '-';
     r2ScorePredTestElement.textContent = '-';
     msePredTestElement.textContent = '-';
+    trainTimeElement.textContent = '-';
+    iterationsElement.textContent = '-';
+    costImprovementElement.textContent = '-';
 }
 
 trainButton.addEventListener('click', async () => {
@@ -689,38 +780,126 @@ trainButton.addEventListener('click', async () => {
         const cvResults = await crossValidate(currentModel, trainData, 5);
         
         console.log("Cross-validation complete:", cvResults);
+        // Debug the metrics fields specifically
+        console.log("Metrics fields:", {
+            avgR2: cvResults.avgR2,
+            avgMSE: cvResults.avgMSE,
+            avg_training_time: cvResults.avg_training_time,
+            avg_iterations: cvResults.avg_iterations,
+            finalModel: cvResults.finalModel
+        });
+        
+        // Additional detailed debugging for the optimizer info
+        if (cvResults.finalModel) {
+            console.log("Final model details:", {
+                hasOptimizerInfo: !!cvResults.finalModel.optimizer_info,
+                optimizerInfo: cvResults.finalModel.optimizer_info,
+                iterations: cvResults.finalModel.optimizer_info?.iterations,
+                costImprovement: cvResults.finalModel.optimizer_info?.cost_improvement
+            });
+        }
+        
+        // Store information about the model on the server
+        if (cvResults.finalModel) {
+            // Store model weights and bias but NOT override the server model
+            currentModel.weights = cvResults.finalModel.weights;
+            currentModel.bias = cvResults.finalModel.bias;
+            currentModel.modelId = cvResults.finalModel.model_id; // Store the server-side model ID for reference
+            console.log(`Model trained and stored on server (ID: ${currentModel.modelId})`);
+        }
         
         // Update the UI with cross-validation results
         r2ScoreElement.textContent = cvResults.avgR2.toFixed(4);
         mseElement.textContent = cvResults.avgMSE.toFixed(2);
         
-        // For the test metrics, use placeholder values until the user clicks "Make Predictions"
-        r2ScoreTestElement.textContent = '-';
-        mseTestElement.textContent = '-';
+        // Update additional training metrics if available
+        if (cvResults.avg_training_time !== undefined) {
+            trainTimeElement.textContent = cvResults.avg_training_time.toFixed(3);
+        }
         
-        // Reset prediction metrics
-        r2ScorePredTrainElement.textContent = '-';
-        msePredTrainElement.textContent = '-';
+        // Update iterations if available
+        if (cvResults.avg_iterations !== undefined && cvResults.avg_iterations !== null) {
+            iterationsElement.textContent = Math.round(cvResults.avg_iterations);
+        } 
+        // Fallback to final model iterations if avg_iterations is not available
+        else if (cvResults.finalModel?.optimizer_info?.iterations !== undefined) {
+            iterationsElement.textContent = Math.round(cvResults.finalModel.optimizer_info.iterations);
+        }
+        
+        // Calculate and display cost improvement
+        if (cvResults.finalModel?.optimizer_info) {
+            const optimizerInfo = cvResults.finalModel.optimizer_info;
+            
+            // Log all optimizer info for debugging
+            console.log("Optimizer info for cost calculation:", optimizerInfo);
+            
+            // Option 1: Use pre-calculated cost improvement if available
+            if (optimizerInfo.cost_improvement !== undefined) {
+                costImprovementElement.textContent = optimizerInfo.cost_improvement.toFixed(2);
+                console.log("Using pre-calculated cost improvement:", optimizerInfo.cost_improvement);
+            } 
+            // Option 2: Calculate from initial and final costs if available
+            else if (optimizerInfo.initial_cost !== undefined && optimizerInfo.final_cost !== undefined && optimizerInfo.initial_cost !== 0) {
+                const initialCost = optimizerInfo.initial_cost;
+                const finalCost = optimizerInfo.final_cost;
+                const improvement = ((initialCost - finalCost) / initialCost) * 100;
+                costImprovementElement.textContent = improvement.toFixed(2);
+                console.log("Calculated cost improvement from initial/final:", improvement);
+            }
+            // Option 3: Calculate from cost history if available
+            else if (optimizerInfo.cost_history && optimizerInfo.cost_history.length >= 2) {
+                const initialCost = optimizerInfo.cost_history[0];
+                const finalCost = optimizerInfo.cost_history[optimizerInfo.cost_history.length - 1];
+                
+                if (initialCost !== 0) {
+                    const improvement = ((initialCost - finalCost) / initialCost) * 100;
+                    costImprovementElement.textContent = improvement.toFixed(2);
+                    console.log("Calculated cost improvement from history:", improvement);
+                } else {
+                    console.warn("Initial cost is zero, cannot calculate improvement percentage");
+                }
+            } else {
+                console.warn("No suitable cost data found for calculating improvement");
+            }
+        } else {
+            console.warn("No optimizer info available for cost improvement calculation");
+        }
+        
+        // Reset prediction metrics for test data
         r2ScorePredTestElement.textContent = '-';
         msePredTestElement.textContent = '-';
         
         // Remove any highlighting
         const trainMetricsCard = r2ScoreElement.closest('.card');
-        const testMetricsCard = r2ScoreTestElement.closest('.card');
         trainMetricsCard.style.border = '';
-        testMetricsCard.style.border = '';
         trainMetricsCard.title = '';
-        testMetricsCard.title = '';
         
-        const trainPredMetricsCard = r2ScorePredTrainElement.closest('.card');
         const testPredMetricsCard = r2ScorePredTestElement.closest('.card');
-        trainPredMetricsCard.style.border = '';
         testPredMetricsCard.style.border = '';
-        trainPredMetricsCard.title = '';
         testPredMetricsCard.title = '';
 
-        // Set view mode to training data
+        // Set view mode to training data only
         viewMode = 'train';
+        
+        // Generate predictions ONLY for training data after model training
+        try {
+            trainButton.textContent = 'Generating training predictions...';
+            
+            // Only generate predictions for training data
+            trainPredictions = await currentModel.predict(trainData.X);
+            
+            console.log("Successfully made predictions for training data");
+            console.log(`Train predictions (first 5): ${trainPredictions.slice(0, 5)}`);
+            
+            // Reset test predictions
+            testPredictions = null;
+            
+        } catch (predError) {
+            console.error("Training prediction failed:", predError);
+            // Don't throw, just log the error - we'll still show the trained model
+        }
+        
+        // Update visualization to show only training predictions
         updateVisualization();
         if (testModeToggle) testModeToggle.textContent = 'View Test Data';
 
@@ -742,52 +921,9 @@ trainButton.addEventListener('click', async () => {
     }
 });
 
-// Function to highlight performance difference between training and test metrics for the split data
-function highlightSplitPerformanceDifference(trainR2, testR2) {
-    const trainMetricsCard = r2ScoreElement.closest('.card');
-    const testMetricsCard = r2ScoreTestElement.closest('.card');
-    
-    // Reset any previous highlighting
-    trainMetricsCard.style.border = '';
-    testMetricsCard.style.border = '';
-    
-    // Add metrics-card class for hover effect
-    trainMetricsCard.classList.add('metrics-card');
-    testMetricsCard.classList.add('metrics-card');
-    
-    // Calculate difference and apply visual feedback
-    const difference = trainR2 - testR2;
-    
-    if (Math.abs(difference) < 0.05) {
-        // Good - model generalizes well
-        trainMetricsCard.style.border = '1px solid rgba(40, 167, 69, 0.5)';
-        testMetricsCard.style.border = '1px solid rgba(40, 167, 69, 0.5)';
-        
-        // Add tooltip information
-        trainMetricsCard.title = 'Good model fit on training data';
-        testMetricsCard.title = 'Good generalization on test data';
-    } else if (difference > 0.2) {
-        // Significant overfitting
-        trainMetricsCard.style.border = '1px solid rgba(220, 53, 69, 0.5)';
-        testMetricsCard.style.border = '1px solid rgba(220, 53, 69, 0.5)';
-        
-        // Add tooltip information
-        trainMetricsCard.title = 'Potential overfitting: Model performs much better on training data';
-        testMetricsCard.title = 'Poor generalization: Consider regularization to improve test performance';
-    } else {
-        // Some overfitting, but not extreme
-        trainMetricsCard.style.border = '1px solid rgba(255, 193, 7, 0.5)';
-        testMetricsCard.style.border = '1px solid rgba(255, 193, 7, 0.5)';
-        
-        // Add tooltip information
-        trainMetricsCard.title = 'Some overfitting: Model performs better on training data';
-        testMetricsCard.title = 'Moderate generalization: Consider tuning model parameters';
-    }
-}
-
-// Function to highlight performance difference between prediction metrics
+// Function to highlight performance difference between training and prediction metrics
 function highlightPerformanceDifference(trainR2, testR2) {
-    const trainMetricsCard = r2ScorePredTrainElement.closest('.card');
+    const trainMetricsCard = r2ScoreElement.closest('.card');
     const testMetricsCard = r2ScorePredTestElement.closest('.card');
     
     // Reset any previous highlighting
@@ -833,38 +969,52 @@ predictButton.addEventListener('click', async () => {
         if (!currentModel || !trainData || !testData) {
             throw new Error('Please train the model first');
         }
-
-        // Make predictions on both train and test datasets
-        trainPredictions = await currentModel.predict(trainData.X);
-        testPredictions = await currentModel.predict(testData.X);
         
-        // Update visualization
-        updateVisualization();
+        if (!currentModel.weights || currentModel.bias === null) {
+            throw new Error('Model not properly trained. Please train the model again.');
+        }
 
-        // Calculate and display metrics for training predictions
-        const trainPredMetrics = await calculateMetrics(trainData.X, trainData.y, trainPredictions);
-        r2ScorePredTrainElement.textContent = trainPredMetrics.r2.toFixed(4);
-        msePredTrainElement.textContent = trainPredMetrics.mse.toFixed(2);
+        console.log(`Making predictions with model (Server ID: ${currentModel.modelId || 'unknown'})`);
         
-        // Calculate and display metrics for test predictions (this is the first time we use the test set)
+        // Make predictions on test dataset only using the server-side model
+        try {
+            // Set a loading state
+            predictButton.disabled = true;
+            predictButton.textContent = 'Making test predictions...';
+            
+            // Only generate predictions for test data
+            testPredictions = await currentModel.predict(testData.X);
+            
+            console.log("Successfully made predictions for test data");
+            console.log(`Test predictions (first 5): ${testPredictions.slice(0, 5)}`);
+            console.log(`Test predictions length: ${testPredictions.length}`);
+        } catch (predError) {
+            console.error("Prediction failed:", predError);
+            throw new Error(`Prediction failed: ${predError.message}. Try training the model again.`);
+        } finally {
+            // Reset button state
+            predictButton.disabled = false;
+            predictButton.textContent = 'Make Predictions';
+        }
+        
+        // Calculate and display metrics for test predictions only
         const testPredMetrics = await calculateMetrics(testData.X, testData.y, testPredictions);
+        console.log("Test data metrics:", testPredMetrics);
+        
         r2ScorePredTestElement.textContent = testPredMetrics.r2.toFixed(4);
         msePredTestElement.textContent = testPredMetrics.mse.toFixed(2);
         
-        // Update the test metrics in the train/test split section as well
-        r2ScoreTestElement.textContent = testPredMetrics.r2.toFixed(4);
-        mseTestElement.textContent = testPredMetrics.mse.toFixed(2);
-        
         // Highlight performance difference
-        highlightPerformanceDifference(trainPredMetrics.r2, testPredMetrics.r2);
+        highlightPerformanceDifference(parseFloat(r2ScoreElement.textContent), testPredMetrics.r2);
         
-        // Also highlight the train/test split cards
-        highlightSplitPerformanceDifference(parseFloat(r2ScoreElement.textContent), testPredMetrics.r2);
+        // Switch to test view mode to show the test predictions
+        viewMode = 'test';
         
-        // Show both datasets
-        viewMode = 'both';
+        // Update the visualization
         updateVisualization();
-        if (testModeToggle) testModeToggle.textContent = 'View Training Data';
+        
+        // Update toggle button text
+        if (testModeToggle) testModeToggle.textContent = 'View Both';
         
     } catch (error) {
         console.error("Prediction error:", error);
