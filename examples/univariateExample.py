@@ -10,9 +10,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load the datasets
-salaryData = loadDatasetFromCSV("../notebooks/univariateSalaryData.csv")
-iceCreamData = loadDatasetFromCSV("../notebooks/univariateIceCreamData.csv")
-studentData = loadDatasetFromCSV("../notebooks/univariateStudentData.csv")
+salaryData = loadDatasetFromCSV("../datasets/univariateSalaryData.csv")
+iceCreamData = loadDatasetFromCSV("../datasets/univariateIceCreamData.csv")
+studentData = loadDatasetFromCSV("../datasets/univariateStudentData.csv")
 
 datasets = [salaryData, iceCreamData, studentData]
 targets = ["Salary", "Ice Cream Profits", "Final Grade"]

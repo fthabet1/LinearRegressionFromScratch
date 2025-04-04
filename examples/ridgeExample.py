@@ -11,9 +11,9 @@ import numpy as np
 import matplotlib.pyplot as plt 
 
 # Load the datasets
-studentData = loadDatasetFromCSV("../notebooks/multivariateStudentData.csv")
-housingData = loadDatasetFromCSV("../notebooks/multivariateHousingData.csv")
-carPriceData = loadDatasetFromCSV("../notebooks/multivariateCarPricesData.csv")
+studentData = loadDatasetFromCSV("../datasets/multivariateStudentData.csv")
+housingData = loadDatasetFromCSV("../datasets/multivariateHousingData.csv")
+carPriceData = loadDatasetFromCSV("../datasets/multivariateCarPricesData.csv")
 
 # Multiple Linear Regression on the datasets
 maxIterations = 5000
