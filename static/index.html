@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression Models</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center mb-4">Linear Regression Models</h1>
+        
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Model Configuration</h5>
+                        <form id="modelForm">
+                            <div class="mb-3">
+                                <label for="modelType" class="form-label">Model Type</label>
+                                <select class="form-select" id="modelType">
+                                    <option value="univariate">Univariate Linear Regression</option>
+                                    <option value="multivariate">Multivariate Linear Regression</option>
+                                    <option value="ridge">Ridge Regression</option>
+                                    <option value="lasso">Lasso Regression</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="learningRate" class="form-label">Learning Rate</label>
+                                <input type="number" class="form-control" id="learningRate" value="0.01" step="0.001">
+                            </div>
+                            <div class="mb-3">
+                                <label for="maxIterations" class="form-label">Max Iterations</label>
+                                <input type="number" class="form-control" id="maxIterations" value="1000">
+                            </div>
+                            <div class="mb-3">
+                                <label for="lambda" class="form-label">Lambda (for Ridge/Lasso)</label>
+                                <input type="number" class="form-control" id="lambda" value="1.0" step="0.1">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <h5 class="card-title">Dataset Selection</h5>
+                        <div class="mb-3">
+                            <label for="datasetSelect" class="form-label">Choose a Dataset</label>
+                            <select class="form-select" id="datasetSelect">
+                                <option value="">Select a dataset...</option>
+                                <!-- Dataset options will be populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-grid gap-2 mt-3">
+                    <button class="btn btn-primary" id="trainButton">Train Model</button>
+                    <button class="btn btn-secondary" id="predictButton" disabled>Make Predictions</button>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Visualization</h5>
+                        <canvas id="plotCanvas"></canvas>
+                        <div id="samplingInfo" class="text-muted small mt-2" style="display:none;">
+                            Note: For performance reasons, only a representative sample of data points is displayed. All points are used for model training.
+                        </div>
+                        <div class="d-flex justify-content-end mt-2">
+                            <button id="testModeToggle" class="btn btn-outline-primary btn-sm" disabled>View Test Data</button>
+                        </div>
+                        <div class="mt-3">
+                            <div class="legend-container d-flex justify-content-center flex-wrap mb-2">
+                                <div class="legend-item me-3 mb-2">
+                                    <span class="color-box" style="background-color: rgba(54, 162, 235, 0.5);"></span>
+                                    <span>Training Data</span>
+                                </div>
+                                <div class="legend-item me-3 mb-2">
+                                    <span class="color-box" style="background-color: rgba(75, 192, 192, 0.5);"></span>
+                                    <span>Testing Data</span>
+                                </div>
+                                <div class="legend-item me-3 mb-2">
+                                    <span class="color-box" style="background-color: rgba(255, 99, 132, 0.5);"></span>
+                                    <span>Training Predictions</span>
+                                </div>
+                                <div class="legend-item mb-2">
+                                    <span class="color-box" style="background-color: rgba(153, 102, 255, 0.5); border-style: dashed;"></span>
+                                    <span>Testing Predictions</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div id="metrics" class="mt-3">
+                            <h6>Model Performance</h6>
+                            <div class="card mb-3">
+                                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Cross-Validation Results</h6>
+                                    <span class="badge bg-primary">5-Fold CV on Training Data</span>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-body py-2">
+                                                    <h6 class="card-title">Training Data (CV)</h6>
+                                                    <p class="mb-1">R² Score: <span id="r2Score">-</span></p>
+                                                    <p class="mb-0">MSE: <span id="mse">-</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-body py-2">
+                                                    <h6 class="card-title">Test Data (Unseen)</h6>
+                                                    <p class="mb-1">R² Score: <span id="r2ScoreTest">-</span></p>
+                                                    <p class="mb-0">MSE: <span id="mseTest">-</span></p>
+                                                    <p class="text-muted small mt-1 mb-0">Updated after predictions</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">Final Evaluation Metrics</h6>
+                                    <span class="badge bg-info">Updated with "Make Predictions"</span>
+                                </div>
+                                <div class="card-body py-2">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-body py-2">
+                                                    <h6 class="card-title">Training Data (Final)</h6>
+                                                    <p class="mb-1">R² Score: <span id="r2ScorePredTrain">-</span></p>
+                                                    <p class="mb-0">MSE: <span id="msePredTrain">-</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card">
+                                                <div class="card-body py-2">
+                                                    <h6 class="card-title">Test Data (Final)</h6>
+                                                    <p class="mb-1">R² Score: <span id="r2ScorePredTest">-</span></p>
+                                                    <p class="mb-0">MSE: <span id="msePredTest">-</span></p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/linearRegression.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html> 

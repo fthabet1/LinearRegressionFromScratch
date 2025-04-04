@@ -1,0 +1,125 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-title {
+    color: #333;
+    margin-bottom: 1.5rem;
+}
+
+canvas {
+    width: 100% !important;
+    height: 400px !important;
+}
+
+#metrics {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+}
+
+#metrics h6 {
+    color: #2c3e50;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    border-color: #3498db;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: #2980b9;
+    border-color: #2980b9;
+}
+
+.form-label {
+    font-weight: 500;
+    color: #34495e;
+}
+
+.alert {
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    .col-md-8 {
+        margin-top: 1rem;
+    }
+}
+
+/* Dataset selection styling */
+optgroup {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+option:disabled {
+    display: none;
+}
+
+optgroup[style*="display: none"] {
+    display: none !important;
+}
+
+/* Improve select styling */
+.form-select {
+    background-color: #fff;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.legend-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.color-box {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    margin-right: 5px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+.metrics-card {
+    transition: box-shadow 0.3s ease;
+}
+
+.metrics-card:hover {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#plotCanvas {
+    min-height: 300px;
+}
+
+@media (max-width: 767.98px) {
+    .legend-container {
+        justify-content: flex-start;
+    }
+    
+    .legend-item {
+        margin-right: 10px;
+        margin-bottom: 5px;
+    }
+} 
