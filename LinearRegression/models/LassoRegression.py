@@ -5,11 +5,16 @@ from LinearRegression.optimizers.CoordinateDescent import CoordinateDescent
 
 class LassoRegression(MultivariateLinearModel):
 
-    def __init__(self, max_iterations=1000, normalize=True, verbose = False):
-        super().__init__(max_iterations=max_iterations, normalize=normalize)
-        self.lambda_ = 1.0
+    def __init__(self, learning_rate=0.01, max_iterations=1000, normalize=True, verbose=False, lambda_=1.0):
+        super().__init__(learning_rate=learning_rate, max_iterations=max_iterations, normalize=normalize)
+        self.lambda_ = lambda_
         self.verbose = verbose
-        self.optimizer = CoordinateDescent(maxIterations=max_iterations, lambda_=self.lambda_)
+        self.optimizer = CoordinateDescent(
+            maxIterations=max_iterations,
+            lambda_=self.lambda_,
+            tolerance=1e-8,
+            verbose=verbose
+        )
 
     def setLambda(self, lambda_):
         self.lambda_ = lambda_

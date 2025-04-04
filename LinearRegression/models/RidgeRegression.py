@@ -5,11 +5,17 @@ from LinearRegression.optimizers.GradientDescent import GradientDescent
 
 class RidgeRegression(MultivariateLinearModel):
 
-    def __init__(self, max_iterations=1000, normalize=True, verbose = False, lambda_=1.0):
-        super().__init__(max_iterations=max_iterations, normalize=normalize)
+    def __init__(self, learning_rate=0.01, max_iterations=1000, normalize=True, verbose=False, lambda_=1.0):
+        super().__init__(learning_rate=learning_rate, max_iterations=max_iterations, normalize=normalize)
         self.lambda_ = lambda_
         self.verbose = verbose
-        self.optimizer = GradientDescent(maxIterations=max_iterations, lambda_=self.lambda_)
+        self.optimizer = GradientDescent(
+            learningRate=learning_rate,
+            maxIterations=max_iterations,
+            lambda_=self.lambda_,
+            tolerance=1e-8,
+            verbose=verbose
+        )
 
     def setLambda(self, lambda_, numSamples):
         self.lambda_ = lambda_ / numSamples
